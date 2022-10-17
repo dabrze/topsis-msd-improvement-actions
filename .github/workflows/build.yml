@@ -1,0 +1,8 @@
+name: template
+on: push
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: main
