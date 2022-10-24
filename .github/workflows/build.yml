@@ -1,4 +1,4 @@
-name: template
+name: main
 on: push
 jobs:
   build:
