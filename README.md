@@ -1,7 +1,7 @@
-#TOPSIS MSD improvement actions
+# TOPSIS MSD improvement actions
 ![](https://github.com/dabrze/topsis-msd-improvement-actions/actions/workflows/build.yml/badge.svg)
 
-###MSDTransformer
+### MSDTransformer
     A class to calculate and show TOPSIS ranking of provided dataset
 
     Attributes
@@ -41,3 +41,5 @@
         calculates and ads topsis value column to dataframe
     ranking()
         creates a ranking from the data based on topsis value column
+       
+![See this cat](https://cataas.com/cat/says/hello%20world!)
