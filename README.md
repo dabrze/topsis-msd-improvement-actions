@@ -42,4 +42,4 @@
     ranking()
         creates a ranking from the data based on topsis value column
        
-![See this cat](https://cataas.com/cat/says/hello%20world!)
+![See this cat](https://cataas.com/cat/says/hello%20world!?hight=200)
