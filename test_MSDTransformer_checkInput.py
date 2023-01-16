@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 import pandas as pd
-from main_3 import MSDTransformer
+from main import MSDTransformer
 
 
 def test_checkInput_weights_length():
