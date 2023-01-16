@@ -4,6 +4,10 @@ import pandas as pd
 from sklearn.base import TransformerMixin
 from sklearn.pipeline import Pipeline
 import matplotlib.pyplot as plt
+import itertools
+import plotly.graph_objects as go
+
+import time
 
 
 class MSDTransformer(TransformerMixin):
@@ -174,22 +178,213 @@ class MSDTransformer(TransformerMixin):
 
         return target_
 
-    def plot(self, target):
-        # TO DO
-        x = np.array(self.data['Mean'])
-        y = np.array(self.data['Std'])
-        colors = np.array([self.data['AggFn']])
 
-        plt.scatter(x, y, c=colors, cmap='jet')
-        for i, txt in enumerate(self.ranked_alternatives):
-            plt.annotate(txt, (x[i], y[i]))
-        plt.ylim(0, 0.5)
-        plt.xlim(0, 1)
-        plt.title("Visualizations of dataset in MSD-space")
-        plt.xlabel("M: mean(u)")
-        plt.ylabel("SD: std(u)")
-        plt.colorbar(label="Aggregation value")
-        plt.show()
+    def plot(self):
+
+        #tic = time.perf_counter()
+
+        ### for all possible mean and std count aggregation value and color it by it
+
+        precision = 500
+        tempx = [] #Mean
+        tempy = [] #Std
+        tempc = [] #AggFn
+
+        for x in range(0,precision):
+            for y in range(0,int(precision/2)):
+                tempx.append(x/precision)
+                tempy.append(y/precision)
+
+        if type(self.agg_fn) == str:
+            if self.agg_fn == 'I':
+                for i in range(len(tempx)):
+                    tempc.append(1 - np.sqrt((1-tempx[i])*(1-tempx[i])+(tempy[i]*tempy[i])))
+            elif self.agg_fn == 'A':
+                for i in range(len(tempx)):
+                    tempc.append(np.sqrt(tempx[i]*tempx[i]+(tempy[i]*tempy[i])))
+            elif self.agg_fn == 'R':
+                for i in range(len(tempx)):
+                    tempc.append((np.sqrt(tempx[i]*tempx[i]+(tempy[i]*tempy[i])))/(((1 - np.sqrt((1-tempx[i])*(
+                        1-tempx[i])+(tempy[i]*tempy[i])))-1)*(-1) + (np.sqrt(tempx[i]*tempx[i]+(tempy[i]*tempy[i])))))
+        else:
+            for i in range(len(tempx)):
+                tempc.append(self.agg_fn)
+        
+
+        fig = go.Figure(data = go.Contour(
+                    x=tempx,
+                    y=tempy,
+                    z=tempc,
+                    zmin=0.0,
+                    zmax=1.0,
+                    colorscale = 'jet',
+                    contours_coloring='heatmap',
+                    line_width = 0,
+                    colorbar = dict(
+                        title='Aggregation value',
+                        titleside='right',
+                        outlinewidth=1,
+                        title_font_size=22,
+                        tickfont_size=15
+
+                        
+                    ),
+                    hoverinfo='none'),
+            layout=go.Layout(
+                title=go.layout.Title(
+                    text="Visualizations of dataset in MSD-space",
+                    font_size=30
+                    ),
+                title_x = 0.5,
+                xaxis_range = [0.0, 1.0],
+                yaxis_range = [0.0, 0.5]
+            )
+            )
+        
+        fig.update_xaxes(
+                        title_text="M: mean",
+                        title_font_size=22,
+                        tickfont_size=15,
+                        tickmode='auto',
+                        showline=True, 
+                        linewidth=1.25, 
+                        linecolor='black',
+                        minor=dict(
+                            ticklen=6,
+                            ticks="inside", 
+                            tickcolor="black", 
+                            showgrid=True
+                            )
+                        )
+        fig.update_yaxes(
+                        title_text="SD: std",
+                        title_font_size=22,
+                        tickfont_size=15,
+                        showline=True, 
+                        linewidth=1.25, 
+                        linecolor='black',
+                        minor=dict(
+                            ticklen=6,
+                            ticks="inside",
+                            tickcolor="black", 
+                            showgrid=True
+                            )
+                        )
+
+
+        ### for all values 0.0-1.0 create all possible combinations and for each count mean and std values
+
+        precision = 6
+        tempset = []
+
+        for i in range(precision+1):
+            tempset.append(round(i/precision, 2))
+
+        temp_DataFrame1 = pd.DataFrame(list(itertools.product(tempset, repeat=int(len(self.data.columns.values[:-3])))), columns=self.data.columns.values[:-3])
+
+        temp_DataFrame1['Mean']=round(temp_DataFrame1.mean(axis=1),2)
+        temp_DataFrame1['Std']=round(temp_DataFrame1.std(axis=1),3)
+
+        temp_DataFrame1.sort_values(by=['Mean','Std'])
+
+        temp_DataFrame = pd.DataFrame(temp_DataFrame1.groupby(['Mean'])['Std'].max().reset_index())
+
+
+        ### distance between before and after
+
+        j = 1
+        treshole = 0.015
+        indexes = temp_DataFrame.index.tolist()
+        isGood = False
+        
+        for k in range(1,len(temp_DataFrame)-1):
+            j=k
+            if(not isGood):
+
+                isGood = True
+
+                for i in range(k,len(temp_DataFrame)-1):
+        
+                    Dif_B = temp_DataFrame['Std'][indexes[j]] - temp_DataFrame['Std'][indexes[j-1]]
+                    Dif_A = temp_DataFrame['Std'][indexes[j]] - temp_DataFrame['Std'][indexes[j+1]]
+                    
+
+                    if ((Dif_A>=0 or Dif_B>=0) or ((Dif_B >= (-1)*treshole and Dif_A >= (-1)*treshole))):
+                        j+=1
+                    else:
+                        isGood = False
+                        temp_DataFrame.drop(indexes[j], inplace = True)
+                        temp_DataFrame.reindex(list(range(0,len(temp_DataFrame))))
+                        indexes = temp_DataFrame.index.tolist()
+
+
+
+        if type(self.agg_fn) == str:
+            if self.agg_fn == 'I':
+                temp_DataFrame['AggFn'] = 1 - np.sqrt((1-temp_DataFrame['Mean'])*(
+                    1-temp_DataFrame['Mean'])+(temp_DataFrame['Std']*temp_DataFrame['Std']))
+                topsis_val = temp_DataFrame['AggFn']
+            elif self.agg_fn == 'A':
+                temp_DataFrame['AggFn'] = np.sqrt(
+                    temp_DataFrame['Mean']*temp_DataFrame['Mean']+(temp_DataFrame['Std']*temp_DataFrame['Std']))
+                topsis_val = temp_DataFrame['AggFn']
+            elif self.agg_fn == 'R':
+                temp_DataFrame['AggFn'] = (np.sqrt(temp_DataFrame['Mean']*temp_DataFrame['Mean']+(temp_DataFrame['Std']*temp_DataFrame['Std'])))/(((1 - np.sqrt((1-temp_DataFrame['Mean'])*(
+                    1-temp_DataFrame['Mean'])+(temp_DataFrame['Std']*temp_DataFrame['Std'])))-1)*(-1) + (np.sqrt(temp_DataFrame['Mean']*temp_DataFrame['Mean']+(temp_DataFrame['Std']*temp_DataFrame['Std']))))
+                topsis_val = temp_DataFrame['AggFn']
+        else:
+            temp_DataFrame['AggFn'] = self.agg_fn
+            topsis_val = self.agg_fn
+
+
+
+        fig.add_trace(go.Scatter(
+            x=temp_DataFrame['Mean'],
+            y=temp_DataFrame['Std'],
+            mode='lines',
+            showlegend = False,
+            hoverinfo='none',
+            line_color='black'
+        ))
+
+        fig.add_trace(go.Scatter(
+            x=[0,1],
+            y=[0.5,0.5],
+            mode='lines',
+            fill='tonexty',
+            fillcolor='rgba(255, 255, 255, 1)',
+            showlegend = False,
+            hoverinfo='none',
+            line_color='white'
+        ))
+     
+
+        ### plot the ranked data
+
+        custom = []
+        for i in self.data.index.values:
+            custom.append(1+ self.ranked_alternatives.index(i))
+
+
+        fig.add_trace(go.Scatter(
+            x=self.data['Mean'].tolist(),
+            y=self.data['Std'].tolist(),
+            showlegend = False,
+            mode='markers',
+            marker=dict(
+                color='black',
+                size=10
+            )
+            ,customdata=custom,
+            text=self.data.index.values,
+            hovertemplate= '<b>%{text}</b><br>Rank: %{customdata:f}<extra></extra>'
+        ))
+
+        fig.show()
+
+        #toc = time.perf_counter()
+        #print("Created plot in ", (toc - tic), " seconds")
+
 
         return
 
@@ -218,7 +413,7 @@ class MSDTransformer(TransformerMixin):
         if (len(self.weights) != self.m):
             raise ValueError("Invalid value 'weights'.")
 
-        if(not all(type(item) in [int, float] for item in self.weights)):
+        if(not all(type(item) in [int, float, np.float64] for item in self.weights)):
             raise ValueError("Invalid value 'weights'. Expected numerical value (int or float).")
 
         if (len(self.objectives) != self.m):
@@ -240,8 +435,7 @@ class MSDTransformer(TransformerMixin):
                     raise ValueError(
                         "Invalid value at 'expert_range'. Expected numerical value (int or float).")
                 if(col[0] > col[1]):
-                    raise ValueError("Invalid value at 'expert_range'. Minimal value " +
-                                     col[0]+" is bigger then maximal value "+col[1]+".")
+                    raise ValueError("Invalid value at 'expert_range'. Minimal value  is bigger then maximal value.")
 
     def normalizeData(self, data):
         """normalize given data using either given expert range or min/max
