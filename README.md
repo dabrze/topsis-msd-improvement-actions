@@ -1,45 +1,53 @@
-# TOPSIS MSD improvement actions
+# MSDTranformer - python library
 ![](https://github.com/dabrze/topsis-msd-improvement-actions/actions/workflows/build.yml/badge.svg)
 
-### MSDTransformer
-    A class to calculate and show TOPSIS ranking of provided dataset
+New python library, that allows to create TOPSIS ranking of alternatives, visualise it in MSD space and perform improvement actions, looking for counterfactuals.
 
-    Attributes
-    ----------
-    data : dataframe
-        dataframe with data we are working on with few columns added during computations
-    x : int
-        number of columns
-    y : int
-        number of rows
-    weights : np.array
-        array of weights for criterias
-    objectives : np.array
-        array of types of criterias (gain or cost)
-    expert_range
-        range of values for criterias given by expert
-    isFitted : bool
-        a flag to tell if data is fittet
+## Table of Contents
+* [Technologies] (#technologies)
+* [Methods] (#methods)
+* [Launch] (#launch)
+* [Sources] (#sources)
 
-    Methods
-    -------
-    fit()
-        fits the data to make it easier to work on it
-    transform()
-        performes any nesesary operation to prepare the ranking
-    inverse_transform()
-        returns the data to the first form
-    normalizeData(data)
-        normalize given data using either given expert range or min/max
-    normalizeWeights(weights)
-        normalize weights to make all of them at most 1
-    calulateMean()
-        calculates and ads mean column to dataframe
-    calulateSD()
-        calculates and ads standard dewiation column to dataframe
-    topsis()
-        calculates and ads topsis value column to dataframe
-    ranking()
-        creates a ranking from the data based on topsis value column
-       
-![See this cat](https://cataas.com/cat/says/hello%20world!?hight=200)
+## Technologies
+Project is created with:
+* work in progress
+
+## Methods
+
+### fit()
+This method must be run before transform() method. It fits and normalizes data. As parameters it takes:
+* data : dataframe
+* weights : np.array (optional)
+* objectives : dictionary/string/list (optional)
+* expert_range : np.array (optional)
+
+### transform()
+This method performes calculation of mean and standard deviation, and create TOPSIS ranking.
+
+### inverse_transform()
+Work in progress.
+
+### plot()
+This method visualize the ranking in MSD space.
+
+### improvement_basic
+This method prints information how much mean and standard deviation should change, to improve the position in ranking of given alternative. As parameters it takes:
+* position : int
+* improvement : int
+* improvement_ratio : float
+
+### improvement_features
+This method prints information how much should be changed values of criteria, to improve the position in the ranking of given alternative. As parameters it takes:
+* position : int
+* improvement : int
+* improvement_ratio : float
+* features_to_change : list
+
+## Launch
+To use this library:
+```
+work in progress
+```
+## Sources
+This project is inspired by the paper "MSD-space: Visualizing the Inner-Workings of TOPSIS Aggregations" by Robert Susmaga, Izabela Szczęch, Piotr Zielniewicz, Dariusz Brzeziński [PUT 2022].
