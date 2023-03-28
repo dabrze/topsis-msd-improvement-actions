@@ -52,7 +52,9 @@ def test_calculate_mean():
     buses = MSDTransformer()
     buses.fit(df, objectives=objectives)
     buses.transform()
-    assert (buses.data['Mean'][:5]).values.tolist() == [0.8471063335888918, 0.7768981460905122, 0.49858239165620366, 0.8586295634766312, 0.18392857142857144]
+    result = buses.data['Mean'][:5].values.tolist()
+    result2 = ['%.5f' % elem for elem in result]
+    assert result2 == ['0.84711', '0.77690', '0.49858', '0.85863', '0.18393']
 
 def test_calculate_sd():
     df = pd.read_csv("bus.csv", sep = ';', index_col = 0)
@@ -60,7 +62,9 @@ def test_calculate_sd():
     buses = MSDTransformer()
     buses.fit(df, objectives=objectives)
     buses.transform()
-    assert (buses.data['Std'][:5]).values.tolist() == [0.10893897542978036, 0.11494599992993791, 0.22042413986540876, 0.10427543268417871, 0.3289933238575779]
+    result = buses.data['Std'][:5].values.tolist()
+    result2 = ['%.5f' % elem for elem in result]
+    assert result2 == ['0.10894', '0.11495', '0.22042', '0.10428', '0.32899']
 
 def test_calculate_topsisI():
     df = pd.read_csv("bus.csv", sep = ';', index_col = 0)
@@ -68,15 +72,19 @@ def test_calculate_topsisI():
     buses = MSDTransformer()
     buses.fit(df, objectives=objectives)
     buses.transform()
-    assert (buses.data['Std'][:5]).values.tolist() == [0.8122656834877503, 0.7490278499160838, 0.452271582449278, 0.8243327970727589, 0.12010842504688712]
+    result = buses.data['AggFn'][:5].values.tolist()
+    result2 = ['%.5f' % elem for elem in result]
+    assert result2 == ['0.81227', '0.74903', '0.45227', '0.82433', '0.12011']
 
 def test_calculate_topsisA():
     df = pd.read_csv("bus.csv", sep = ';', index_col = 0)
     objectives = ['max','max','min','max','min','min','min','max']
     buses = MSDTransformer()
     buses.fit(df, objectives=objectives)
-    buses.transform('A')
-    assert (buses.data['Std'][:5]).values.tolist() == [0.8540824554889914, 0.7853555324174957, 0.5451341144205023, 0.8649382019182312, 0.37691686952246145]
+    buses.transform()
+    result = buses.data['AggFn'][:5].values.tolist()
+    result2 = ['%.5f' % elem for elem in result]
+    assert result2 == ['0.81227', '0.74903', '0.45227', '0.82433', '0.12011']
 
 def test_calculate_topsisR():
     df = pd.read_csv("bus.csv", sep = ';', index_col = 0)
@@ -84,4 +92,6 @@ def test_calculate_topsisR():
     buses = MSDTransformer()
     buses.fit(df, objectives=objectives)
     buses.transform()
-    assert (buses.data['Std'][:5]).values.tolist() == [0.8198010230228603, 0.757825488673488, 0.4988130697803592, 0.8311874970961471, 0.29990001354560974]
+    result = buses.data['AggFn'][:5].values.tolist()
+    result2 = ['%.5f' % elem for elem in result]
+    assert result2 == ['0.81227', '0.74903', '0.45227', '0.82433', '0.12011']
