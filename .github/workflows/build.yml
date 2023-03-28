@@ -22,3 +22,6 @@ jobs:
         env:
           SOME_SECRET: ${{ secrets.SOME_SECRET }}
         run: python main.py
+      - name: run unit tests
+        run: |
+          pytest
