@@ -671,7 +671,7 @@ class MSDTransformer(TransformerMixin):
         updated_data['AggFn'] = temp_data['AggFn']
         updated_data = updated_data.sort_values(by='AggFn', ascending=False)
         updated_data = updated_data.drop(columns=['AggFn'])
-        updated_data['BusId'] = updated_data.index
+        updated_data[updated_data.index.name] = updated_data.index
         display(updated_data.style.apply(self.highlightRows, axis = 1))
         
     def highlightRows(self, x):
