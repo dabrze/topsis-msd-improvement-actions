@@ -68,7 +68,6 @@ class MSDTransformer(TransformerMixin):
 
     def fit(self, data, weights=None, objectives=None, expert_range=None):
         """fits the data to make it easier to work on it.
-
         Parameters
         ----------
         data : dataframe
@@ -80,7 +79,6 @@ class MSDTransformer(TransformerMixin):
             (default: array of 'max')
         expert_range : np.array, optional
             array of length equal to number of critetrias with minimal and maximal value for every criterion (defoult: none)
-
         normalises data and weights
         """
 
@@ -504,7 +502,6 @@ class MSDTransformer(TransformerMixin):
               alternative_to_improve[j] = -self.value_range[j] * alternative_to_improve[j]
 
           self.printChanges(alternative_to_improve, features_to_change)
-          self.printChangedRank(alternative_to_improve, self.ranked_alternatives[position])
           break
 
           for i in range(len(features_to_change)):
@@ -632,11 +629,12 @@ class MSDTransformer(TransformerMixin):
         return objectives_list
 
     def printChanges(self, dataframe, keys):
-       dataframe = dataframe.to_frame()
-       changes = dataframe.loc[keys]
-       changes.columns = ['Change']
-       display(changes)
-        
+        dataframe = dataframe.to_frame()
+        changes = dataframe.loc[keys]
+        changes.columns = ['Change']
+        self.improvement = changes
+        display(changes)
+    
     def printChangedRank(self, changes, alternative_id):
         updated_data = self.original_data.copy()
         row_to_update = updated_data.loc[alternative_id]
@@ -675,26 +673,7 @@ class MSDTransformer(TransformerMixin):
         display(updated_data.style.apply(self.highlightRows, axis = 1))
         
     def highlightRows(self, x):
-        
         if x[len(x) - 1] == self.row_name:
             return['background-color: gray']*len(x)
         else:
             return['background-color: none']*len(x)
-        
-df = pd.read_csv("bus.csv", sep = ';', index_col = 0)
-#objectives = ['max','max','min','max','min','min','min','max']
-objectives = {
-    "MaxSpeed" : 'max',
-    "ComprPressure" : "max",
-    "Blacking" : "min",
-    "Torque" : "max",
-    "SummerCons" : "min",
-    "WinterCons" : "min",
-    "OilCons" : "min",
-    "HorsePower" : "max"}
-buses = MSDTransformer()
-buses.fit(df, None, objectives,  None)
-buses.transform()
-
-print(buses.ranked_alternatives)
-buses.improvement_features(27,3,0.01, ['MaxSpeed', 'Blacking', 'SummerCons'])
