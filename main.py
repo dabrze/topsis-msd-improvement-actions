@@ -68,6 +68,7 @@ class MSDTransformer(TransformerMixin):
 
     def fit(self, data, weights=None, objectives=None, expert_range=None):
         """fits the data to make it easier to work on it.
+
         Parameters
         ----------
         data : dataframe
@@ -79,14 +80,18 @@ class MSDTransformer(TransformerMixin):
             (default: array of 'max')
         expert_range : np.array, optional
             array of length equal to number of critetrias with minimal and maximal value for every criterion (defoult: none)
+
         normalises data and weights
         """
 
-        self.data = data
+        self.original_data = data
+
+        self.data = self.original_data.copy()
         self.m = self.data.shape[1]
         self.n = self.data.shape[0]
 
-        self.weights = (weights if weights is not None else np.ones(self.m))
+        self.original_weights = (weights if weights is not None else np.ones(self.m))
+        self.weights = self.original_weights.copy()
 
         self.objectives = objectives
 
@@ -118,12 +123,11 @@ class MSDTransformer(TransformerMixin):
 
         self.checkInput()
 
-        self.data_ = self.data.copy()
-        weights_ = self.weights.copy()
+        #weights_ = self.weights.copy()
 
-        self.data = self.normalizeData(self.data_)
+        self.data = self.normalizeData(self.data)
 
-        self.weights = self.normalizeWeights(weights_)
+        self.weights = self.normalizeWeights(self.weights)
 
         self.isFitted = True
 
