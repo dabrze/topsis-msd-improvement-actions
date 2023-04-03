@@ -670,7 +670,16 @@ class MSDTransformer(TransformerMixin):
         
         updated_data['AggFn'] = temp_data['AggFn']
         updated_data = updated_data.sort_values(by='AggFn', ascending=False)
-        display(updated_data.drop(columns=['AggFn']))
+        updated_data = updated_data.drop(columns=['AggFn'])
+        updated_data['BusId'] = updated_data.index
+        display(updated_data.style.apply(self.highlightRows, axis = 1))
+        
+    def highlightRows(self, x):
+        
+        if x[len(x) - 1] == self.row_name:
+            return['background-color: gray']*len(x)
+        else:
+            return['background-color: none']*len(x)
         
 df = pd.read_csv("bus.csv", sep = ';', index_col = 0)
 #objectives = ['max','max','min','max','min','min','min','max']
