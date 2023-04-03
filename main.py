@@ -504,6 +504,7 @@ class MSDTransformer(TransformerMixin):
               alternative_to_improve[j] = -self.value_range[j] * alternative_to_improve[j]
 
           self.printChanges(alternative_to_improve, features_to_change)
+          self.printChangedRank(alternative_to_improve, self.ranked_alternatives[position])
           break
 
           for i in range(len(features_to_change)):
@@ -635,7 +636,42 @@ class MSDTransformer(TransformerMixin):
        changes = dataframe.loc[keys]
        changes.columns = ['Change']
        display(changes)
+        
+    def printChangedRank(self, changes, alternative_id):
+        updated_data = self.original_data.copy()
+        row_to_update = updated_data.loc[alternative_id]
 
+        for i, val in enumerate(changes):
+           row_to_update[i] += val
+
+        updated_data.loc[alternative_id] = row_to_update
+
+        #We have to again calculate TOPSIS ranking, unfortunatelly some methods works only on self.data
+        #Therefore we can't use methods, and we need to write code again
+        temp_data = updated_data.copy()
+        temp_data = self.normalizeData(temp_data)
+
+        temp_data['Mean'] = temp_data.mean(axis=1)
+        temp_data['Std'] = temp_data.std(axis=1)
+
+
+        if type(self.agg_fn) == str:
+            if self.agg_fn == 'I':
+                temp_data['AggFn'] = 1 - np.sqrt((1-temp_data['Mean'])*(
+                    1-temp_data['Mean'])+(temp_data['Std']*temp_data['Std']))
+            elif self.agg_fn == 'A':
+                temp_data['AggFn'] = np.sqrt(
+                    temp_data['Mean']*temp_data['Mean']+(temp_data['Std']*temp_data['Std']))
+            elif self.agg_fn == 'R':
+                temp_data['AggFn'] = (np.sqrt(temp_data['Mean']*temp_data['Mean']+(temp_data['Std']*temp_data['Std'])))/(((1 - np.sqrt((1-temp_data['Mean'])*(
+                    1-temp_data['Mean'])+(temp_data['Std']*temp_data['Std'])))-1)*(-1) + (np.sqrt(temp_data['Mean']*temp_data['Mean']+(temp_data['Std']*temp_data['Std']))))
+        else:
+            temp_data['AggFn'] = self.agg_fn
+        
+        updated_data['AggFn'] = temp_data['AggFn']
+        updated_data = updated_data.sort_values(by='AggFn', ascending=False)
+        display(updated_data.drop(columns=['AggFn']))
+        
 df = pd.read_csv("bus.csv", sep = ';', index_col = 0)
 #objectives = ['max','max','min','max','min','min','min','max']
 objectives = {
