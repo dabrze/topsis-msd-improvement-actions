@@ -1,4 +1,4 @@
-name: run main.py
+name: tests
 on: push
 jobs:
   build:
@@ -18,10 +18,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           
-      - name: execute py script # run main.py
+      - name: execute py script # run MSDTransformer.py
         env:
           SOME_SECRET: ${{ secrets.SOME_SECRET }}
-        run: python main.py
+        run: python MSDTransformer.py
       - name: run unit tests
-        run: |
-          pytest
+        run: python -m pytest --import-mode=append tests/
