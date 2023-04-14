@@ -6,11 +6,20 @@
 Welcome to MSDTransformer's documentation!
 ==========================================
 
+**MSDTransformer** is a Python library for visualisations and actions in MSD space.
+
+Check out the :doc:`usage` section for further information, including
+how to :ref:`installation` the project.
+
+.. note::
+
+   This project is under active development.
+ 
+Contents
+--------
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
-
-
 
 Indices and tables
 ==================
