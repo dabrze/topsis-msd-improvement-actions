@@ -8,6 +8,16 @@ import plotly.graph_objects as go
 import itertools
 from IPython.display import display
 
+"""
+MSDTransformer - Python library for MSD space lovers.
+This is a Python docstring, we can use reStructuredText syntax here!
+.. code-block:: python
+    # Import MSDTransformer
+    import MSDTransformer
+    # Call it
+    MSDTransformer()
+"""
+__version__ = "0.1.0"
 
 class MSDTransformer(TransformerMixin):
     """
