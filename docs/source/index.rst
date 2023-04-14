@@ -8,8 +8,8 @@ Welcome to MSDTransformer's documentation!
 
 **MSDTransformer** is a Python library for visualisations and actions in MSD space.
 
-Check out the :doc:`usage` section for further information, including
-how to :ref:`installation` the project.
+Check out the :doc:`usage` section for further information. For guide how to install the library
+chcek the :ref:`installation` section.
 
 .. note::
 
