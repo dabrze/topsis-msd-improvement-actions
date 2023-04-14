@@ -1,6 +1,9 @@
 Usage
 =====
 
-.. _usage:
+.. usage::
 
-'...'
+.. autosummary::
+  :toctree: generated
+  
+  MSDtransformer
