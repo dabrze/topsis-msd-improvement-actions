@@ -8,17 +8,6 @@ import plotly.graph_objects as go
 import itertools
 from IPython.display import display
 
-"""
-MSDTransformer - Python library for MSD space lovers.
-This is a Python docstring, we can use reStructuredText syntax here!
-.. code-block:: python
-    # Import MSDTransformer
-    import MSDTransformer
-    # Call it
-    MSDTransformer()
-"""
-__version__ = "0.1.0"
-
 class MSDTransformer(TransformerMixin):
     """
     A class to calculate and show TOPSIS ranking of provided dataset
@@ -38,7 +27,7 @@ class MSDTransformer(TransformerMixin):
     expert_range
         range of values for criterias given by expert
     isFitted : bool
-        a flag to tell if data is fittet
+        a flag to tell if data is fitted
     Methods
     -------
     fit()
@@ -52,11 +41,11 @@ class MSDTransformer(TransformerMixin):
     normalizeWeights(weights)
         normalize weights to make all of them at most 1
     calulateMean()
-        calculates and ads mean column to dataframe
+        calculates and adds mean column to dataframe
     calulateSD()
-        calculates and ads standard dewiation column to dataframe
+        calculates and adds standard deviation column to dataframe
     topsis()
-        calculates and ads topsis value column to dataframe
+        calculates and adds topsis value column to dataframe
     ranking()
         creates a ranking from the data based on topsis value column
     """
@@ -70,7 +59,7 @@ class MSDTransformer(TransformerMixin):
         Parameters
         ----------
         agg_fn : string or own function, optional
-            aggregation function to be used to calculate the TOPSIS value (defoult: 'I')
+            aggregation function to be used to calculate the TOPSIS value (default: 'I')
         """
 
         self.agg_fn = (agg_fn if type(agg_fn) == str else agg_fn)
@@ -88,7 +77,7 @@ class MSDTransformer(TransformerMixin):
             array of length equal to number of criterias or a single string (to aply to every criteria), possible values: 'min', 'max', 'gain', 'cost', 'g', 'c'
             (default: array of 'max')
         expert_range : np.array, optional
-            array of length equal to number of critetrias with minimal and maximal value for every criterion (defoult: none)
+            array of length equal to number of critetrias with minimal and maximal value for every criterion (default: none)
         normalises data and weights
         """
 
@@ -123,7 +112,6 @@ class MSDTransformer(TransformerMixin):
 
         self.expert_range = expert_range
 
-        # store values of caluclating ranked alternatives, mean, sd and topsis value
         self.mean_col = []
         self.sd_col = []
         self.topsis_val = []
@@ -131,15 +119,12 @@ class MSDTransformer(TransformerMixin):
 
         self.checkInput()
 
-        #weights_ = self.weights.copy()
-
         self.data = self.normalizeData(self.data)
 
         self.weights = self.normalizeWeights(self.weights)
 
         self.isFitted = True
 
-### TO DO: Remove tmp argument
     def transform(self):
         """performes any nesesary operation to prepare the ranking
         calculates and adds mean, standard deviation and topsis value columns to the dataframe and ranks the data
@@ -151,12 +136,10 @@ class MSDTransformer(TransformerMixin):
         if(not self.isFitted):
             raise Exception("fit is required before transform")
 
-        # MSD transformation
         self.calulateMean()
         self.calculateSD()
         self.topsis()
 
-        # ranking
         self.ranked_alternatives = self.ranking()
 
     def inverse_transform(self, target):
@@ -654,8 +637,6 @@ class MSDTransformer(TransformerMixin):
 
         updated_data.loc[alternative_id] = row_to_update
 
-        #We have to again calculate TOPSIS ranking, unfortunatelly some methods works only on self.data
-        #Therefore we can't use methods, and we need to write code again
         temp_data = updated_data.copy()
         temp_data = self.normalizeData(temp_data)
 
