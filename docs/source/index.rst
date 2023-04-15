@@ -22,3 +22,4 @@ Contents
    Home <self>
    installation
    usage
+   api
