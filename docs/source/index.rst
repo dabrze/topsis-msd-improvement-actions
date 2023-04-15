@@ -22,4 +22,5 @@ Contents
    Home <self>
    installation
    usage
+   methods
    api
