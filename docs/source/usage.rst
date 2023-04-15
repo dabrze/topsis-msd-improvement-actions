@@ -3,11 +3,13 @@ Usage
 
 .. usage::
 
+  :toctree:
+  methods
+  tutorial
+  
 .. autosummary::
   :toctree: generated
   
   MSDtransformer
   
-  :toctree:
-  methods
-  tutorial
+
