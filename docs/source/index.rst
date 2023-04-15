@@ -6,6 +6,9 @@
 Welcome to MSDTransformer's documentation!
 ==========================================
 
+.. automodule:: my_project.main
+    :members:
+
 **MSDTransformer** is a Python library for visualisations and actions in MSD space.
 
 Check out the :doc:`usage` section for further information. For guide how to install the library
@@ -24,3 +27,8 @@ Contents
    usage
    methods
    api
+
+Indices and tables
+==================* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
