@@ -13,6 +13,10 @@ author = 'Adam Ciesiółka, Bogna Kilanowska, Maciej Woś'
 release = '0.1'
 version = '0.1.0'
 
+import os
+import sys
+sys.path.insert(0, os.path.abspath('../..'))
+
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
@@ -22,6 +26,8 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',
+    'sphinx.ext.coverage',
+    'sphinx.ext.napoleon'
 ]
 
 intersphinx_mapping = {
