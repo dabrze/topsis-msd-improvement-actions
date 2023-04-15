@@ -103,7 +103,7 @@ class MSDTransformer(TransformerMixin):
         elif(type(objectives) is str):
             self.objectives = np.repeat(objectives, self.m)
         elif(type(objectives) is dict):
-            self.objectives = self.dictToObjectivesList(objectives)
+            self.objectives = self.__dictToObjectivesList(objectives)
         elif(objectives is None):
             self.objectives = np.repeat('max', self.m)
 
@@ -123,11 +123,11 @@ class MSDTransformer(TransformerMixin):
         self.topsis_val = []
         self.ranked_alternatives = []
 
-        self.checkInput()
+        self.__checkInput()
 
-        self.data = self.normalizeData(self.data)
+        self.data = self.__normalizeData(self.data)
 
-        self.weights = self.normalizeWeights(self.weights)
+        self.weights = self.__normalizeWeights(self.weights)
 
         self.isFitted = True
 
@@ -144,11 +144,11 @@ class MSDTransformer(TransformerMixin):
         if(not self.isFitted):
             raise Exception("fit is required before transform")
 
-        self.calulateMean()
-        self.calculateSD()
-        self.topsis()
+        self.__calulateMean()
+        self.__calculateSD()
+        self.__topsis()
 
-        self.ranked_alternatives = self.ranking()
+        self.ranked_alternatives = self.__ranking()
 
     def inverse_transform(self, target):
         """ TO DO
@@ -486,7 +486,7 @@ class MSDTransformer(TransformerMixin):
             else:
               alternative_to_improve[j] = -self.value_range[j] * alternative_to_improve[j]
 
-          self.printChanges(alternative_to_improve, features_to_change)
+          self.__printChanges(alternative_to_improve, features_to_change)
           break
 
           for i in range(len(features_to_change)):
@@ -509,7 +509,7 @@ class MSDTransformer(TransformerMixin):
         # INTERNAL FUNCTIONS
     # ---------------------------------------------------------
 
-    def checkInput(self):
+    def __checkInput(self):
       
         if (len(self.weights) != self.m):
             raise ValueError("Invalid value 'weights'.")
@@ -538,7 +538,7 @@ class MSDTransformer(TransformerMixin):
                 if(col[0] > col[1]):
                     raise ValueError("Invalid value at 'expert_range'. Minimal value  is bigger then maximal value.")
 
-    def normalizeData(self, data):
+    def __normalizeData(self, data):
         """normalize given data using either given expert range or min/max
         uses the minmax normalization with minimum and maximum taken from expert ranges if given
         Parameters
@@ -564,7 +564,7 @@ class MSDTransformer(TransformerMixin):
 
         return data
 
-    def normalizeWeights(self, weights):
+    def __normalizeWeights(self, weights):
         """normalize weights
         result are weights not greater than 1 but not 0 if not present previously
         Parameters
@@ -575,15 +575,15 @@ class MSDTransformer(TransformerMixin):
         weights = np.array([float(i)/max(weights) for i in weights])
         return weights
 
-    def calulateMean(self):
+    def __calulateMean(self):
         """calculates and ads mean column to dataframe"""
         self.data['Mean'] = self.data.mean(axis=1)
 
-    def calculateSD(self):
+    def __calculateSD(self):
         """calculates and ads standard dewiatiom column to dataframe"""
         self.data['Std'] = self.data.std(axis=1)
 
-    def topsis(self):
+    def __topsis(self):
         """calculates and ads topsis value column to dataframe"""
         if type(self.agg_fn) == str:
             if self.agg_fn == 'I':
@@ -598,14 +598,14 @@ class MSDTransformer(TransformerMixin):
         else:
             self.data['AggFn'] = self.agg_fn
 
-    def ranking(self):
+    def __ranking(self):
         """creates a ranking from the data based on topsis value column"""
         data__ = self.data.copy()
         data__ = data__.sort_values(by='AggFn', ascending=False)
         arranged = data__.index.tolist()
         return arranged
 
-    def dictToObjectivesList(self, objectives_dict):
+    def __dictToObjectivesList(self, objectives_dict):
         objectives_list = []
 
         for col_name in self.data.columns:
@@ -613,14 +613,14 @@ class MSDTransformer(TransformerMixin):
             
         return objectives_list
 
-    def printChanges(self, dataframe, keys):
+    def __printChanges(self, dataframe, keys):
         dataframe = dataframe.to_frame()
         changes = dataframe.loc[keys]
         changes.columns = ['Change']
         self.improvement = changes
         display(changes)
     
-    def printChangedRank(self, changes, alternative_id):
+    def __printChangedRank(self, changes, alternative_id):
         updated_data = self.original_data.copy()
         row_to_update = updated_data.loc[alternative_id]
 
@@ -630,7 +630,7 @@ class MSDTransformer(TransformerMixin):
         updated_data.loc[alternative_id] = row_to_update
 
         temp_data = updated_data.copy()
-        temp_data = self.normalizeData(temp_data)
+        temp_data = self.__normalizeData(temp_data)
 
         temp_data['Mean'] = temp_data.mean(axis=1)
         temp_data['Std'] = temp_data.std(axis=1)
@@ -653,9 +653,9 @@ class MSDTransformer(TransformerMixin):
         updated_data = updated_data.sort_values(by='AggFn', ascending=False)
         updated_data = updated_data.drop(columns=['AggFn'])
         updated_data[updated_data.index.name] = updated_data.index
-        display(updated_data.style.apply(self.highlightRows, axis = 1))
+        display(updated_data.style.apply(self.__highlightRows, axis = 1))
         
-    def highlightRows(self, x):
+    def __highlightRows(self, x):
         if x[len(x) - 1] == self.row_name:
             return['background-color: gray']*len(x)
         else:
