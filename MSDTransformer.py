@@ -10,44 +10,38 @@ from IPython.display import display
 
 class MSDTransformer(TransformerMixin):
     """
-    A class to calculate and show TOPSIS ranking of provided dataset
+    A class used to: calculate TOPSIS ranking,
+    plot positions of alternatives in MSD space,
+    perform improvement actions on selected alternative.
+    
     ...
+
     Attributes
     ----------
+    original_data : dataframe
+        Pandas dataframe provided by the user.
     data : dataframe
-        dataframe with data we are working on with few columns added during computations
-    x : int
-        number of columns
-    y : int
-        number of rows
-    weights : np.array
-        array of weights for criterias
-    objectives : np.array
-        array of types of criterias (gain or cost)
-    expert_range
-        range of values for criterias given by expert
+        A copy of self.original_data, on which all calculations are performed.
+    m : int
+        Number of dataframe's columns
+    n : int
+        Number of dataframe's rows
+    original_weights : np.array of float
+        Numpy array of criteria' weights.
+    weights : np.array of float, optional
+        Normalized self.original_weights.
+    objectives : np.array of str
+        Numpy array informing which criteria are cost type
+        and which are gain type.
+    expert_range : none
+        TO DO
     isFitted : bool
-        a flag to tell if data is fitted
-    Methods
-    -------
-    fit()
-        fits the data to make it easier to work on it
-    transform()
-        performes any nesesary operation to prepare the ranking
-    inverse_transform()
-        returns the data to the first form
-    normalizeData(data)
-        normalize given data using either given expert range or min/max
-    normalizeWeights(weights)
-        normalize weights to make all of them at most 1
-    calulateMean()
-        calculates and adds mean column to dataframe
-    calulateSD()
-        calculates and adds standard deviation column to dataframe
-    topsis()
-        calculates and adds topsis value column to dataframe
-    ranking()
-        creates a ranking from the data based on topsis value column
+        Simple flag which takes True value only when the fit() method
+        was performed on MSDTransformer object.
+    topsis_val : list of float
+        List of calculated TOPSIS values of self.dataframe.
+    ranked_alternatives : list of str
+        List of alternatives' ID's orederd according to their TOPSIS values.
     """
 
     # ---------------------------------------------------------
@@ -58,27 +52,39 @@ class MSDTransformer(TransformerMixin):
         """
         Parameters
         ----------
-        agg_fn : string or own function, optional
-            aggregation function to be used to calculate the TOPSIS value (default: 'I')
+        agg_fn : string or function, optional
+            Aggregation function which is used to calculate the TOPSIS value. 
+            It can be passed as the custom function, or take one of the following values:
+            "I", "A", "R".
         """
 
         self.agg_fn = (agg_fn if type(agg_fn) == str else agg_fn)
         self.isFitted = False
 
     def fit(self, data, weights=None, objectives=None, expert_range=None):
-        """fits the data to make it easier to work on it.
+        """Checks input data and normalizes it.
+
         Parameters
         ----------
         data : dataframe
-            dataframe on whih the algorythm will be performed
-        weights : np.array, optional
-            array of length equal to number of critetrias (default: np.ones())
-        objectives : optional
-            array of length equal to number of criterias or a single string (to aply to every criteria), possible values: 'min', 'max', 'gain', 'cost', 'g', 'c'
-            (default: array of 'max')
-        expert_range : np.array, optional
-            array of length equal to number of critetrias with minimal and maximal value for every criterion (default: none)
-        normalises data and weights
+            Pandas dataframe provided by the user. 
+            Apart of column and row names all values must be numerical.
+        weights : np.array of float, optional
+            Numpy array of criteria' weights. 
+            Its lenght must be equal to self.m.
+            (default: np.ones())
+        objectives : list or dict or str, optional
+            Numpy array informing which criteria are cost type and which are gain type.
+            It can be passed as:
+            - list of lenght equal to self.m. in which each element describes type of one criterion:
+            'cost'/'c'/'min' for cost type criteria and 'gain'/'g'/'max' for gain type criteria.
+            - dictonary of size equal to self.m in which each key is the criterion name and ech value takes one of the following values:
+            'cost'/'c'/'min' for cost type criteria and 'gain'/'g'/'max' for gain type criteria.
+            - a string which describes type of all criteria:
+            'cost'/'c'/'min' if criteria are cost type and 'gain'/'g'/'max' if criteria are gain type.
+            (default: list of 'max')
+        expert_range : none, optional
+            TO DO
         """
 
         self.original_data = data
@@ -112,8 +118,8 @@ class MSDTransformer(TransformerMixin):
 
         self.expert_range = expert_range
 
-        self.mean_col = []
-        self.sd_col = []
+        #self.mean_col = []
+        #self.sd_col = []
         self.topsis_val = []
         self.ranked_alternatives = []
 
@@ -126,12 +132,14 @@ class MSDTransformer(TransformerMixin):
         self.isFitted = True
 
     def transform(self):
-        """performes any nesesary operation to prepare the ranking
-        calculates and adds mean, standard deviation and topsis value columns to the dataframe and ranks the data
+        """ Adds to self.data 'Mean', 'Std' and 'AggFn' columns,
+        which contain values of mean, standard deviation and TOPSIS for every alternative.
+        Based on calculated TOPSIS values it ranks alternatives and saves their order in self.ranked_alternatives.
+        
         Rises
         -----
         Exception
-            if the data is not fitted
+            If on the MSDTransport object wasn't performed fit() method.
         """
         if(not self.isFitted):
             raise Exception("fit is required before transform")
@@ -143,12 +151,24 @@ class MSDTransformer(TransformerMixin):
         self.ranked_alternatives = self.ranking()
 
     def inverse_transform(self, target):
+        """ TO DO
+
+        Parameters
+        ----------
+        target : none
+            TO DO
+
+        Returns
+        -------
+        TO DO
+        """
         target_ = target.copy()
 
         return target_
 
     def plot(self):
-
+        """ Plots positions of alternatives in MSD space.
+        """
         #tic = time.perf_counter()
 
         ### for all possible mean and std count aggregation value and color it by it
@@ -352,20 +372,20 @@ class MSDTransformer(TransformerMixin):
 
         #toc = time.perf_counter()
         #print("Created plot in ", (toc - tic), " seconds")
-
-
         return
     
     def improvement_basic(self, position, improvement, improvement_ratio):
-      """given the parameters of an alternative shows how much improvement in standard deviation and mean is needed to get higher ranking
+      """Calculates minimal change of mean and standard deviation,
+      needed to change a rank of given alternative.
+        
         Parameters
         ----------
         position : int
-            current possition of alternative to improve
+            TO DO
         improvement : int
-            for how many positions to improve
+            TO DO
         improvement_ratio : float
-            how detailed should be the output
+            TO DO
       """
       alternative_to_improve = self.data.loc[self.ranked_alternatives[position]].copy()
       alternative_to_overcome = self.data.loc[self.ranked_alternatives[position - improvement]].copy()
@@ -393,53 +413,25 @@ class MSDTransformer(TransformerMixin):
       print("you should change standard deviation by:", alternative_to_improve["Std"] - self.data.loc[self.ranked_alternatives[position]]["Std"], "and mean by:", alternative_to_improve["Mean"] - self.data.loc[self.ranked_alternatives[position]]["Mean"])
 
     def improvement_features(self, position, improvement, improvement_ratio, features_to_change):
-      """given the parameters of an alternative shows how much improvement in chosen parameters is needed to get higher ranking
+      """Calculates minimal change of the criteria,
+      needed to change a rank of given alternative.
+
         Parameters
         ----------
         position : int
-            current possition of alternative to improve
+            TO DO
         improvement : int
-            for how many positions to improve
+            TO DO
         improvement_ratio : float
-            how detailed should be the output
+            TO DO
         features_to_change : list
-            which features should be improved (in given order)
+            TO DO
       """
       alternative_to_improve = self.data.loc[self.ranked_alternatives[position]].copy()
       alternative_to_overcome = self.data.loc[self.ranked_alternatives[position - improvement]].copy()
       AggFn = alternative_to_improve["AggFn"]
       alternative_to_improve = alternative_to_improve.drop(labels = ["Mean", "Std", "AggFn"])
       feature_pointer = 0
-
-      """
-      while AggFn < alternative_to_overcome["AggFn"]:
-        if feature_pointer == len(features_to_change):
-          print("This set of features to change is not sufficiant to overcame that alternative")
-          break
-        while alternative_to_improve[features_to_change[feature_pointer]] + improvement_ratio <= 1:
-          alternative_to_improve[features_to_change[feature_pointer]] += improvement_ratio
-          improvements[feature_pointer] += improvement_ratio
-          mean = alternative_to_improve.mean()
-          std = alternative_to_improve.std()
-          if self.agg_fn == "I":
-            AggFn = 1-np.sqrt((1-mean)*(1-mean) + std*std)
-          elif self.agg_fn == "A":
-            AggFn = np.sqrt(mean*mean + std*std)
-          else:
-            AggFn = np.sqrt(mean*mean + std*std)/(np.sqrt((1-mean)*(1-mean) + std*std) + np.sqrt(mean*mean + std*std))
-          if AggFn > alternative_to_overcome["AggFn"]:
-            break
-        feature_pointer += 1
-        
-      else:
-        for i in range(len(features_to_change)):
-          if(self.objectives[i] == "max"):
-            improvements[i] = self.value_range[features_to_change[i]] * improvements[i]
-          else:
-            improvements[i] = -(self.value_range[features_to_change[i]] * improvements[i])
-        print("to achive that you should change your features by this values:")
-        print(improvements)
-      """
 
       is_improvement_sayisfactory = False
 
@@ -466,7 +458,7 @@ class MSDTransformer(TransformerMixin):
         else:
           AggFn = np.sqrt(mean*mean + std*std)/(np.sqrt((1-mean)*(1-mean) + std*std) + np.sqrt(mean*mean + std*std))
         change_ratio = 0.25
-        while True: # AggFn < alternative_to_overcome["AggFn"] or AggFn - alternative_to_overcome["AggFn"] < improvement_ratio:
+        while True: 
           if AggFn < alternative_to_overcome["AggFn"]:
             alternative_to_improve[i] += change_ratio
           elif AggFn - alternative_to_overcome["AggFn"] > improvement_ratio:
