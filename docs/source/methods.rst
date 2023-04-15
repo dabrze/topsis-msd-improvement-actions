@@ -1,4 +1,4 @@
 Methods
 =======
 
-.. include:: ../README.rst
+.. autofunction:: MSDTransformer.MSDTransformer
