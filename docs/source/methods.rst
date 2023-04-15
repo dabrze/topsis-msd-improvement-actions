@@ -1,0 +1,4 @@
+Methods
+=======
+
+.. include:: ../README.rst
