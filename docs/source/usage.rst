@@ -7,3 +7,7 @@ Usage
   :toctree: generated
   
   MSDtransformer
+  
+  :toctree:
+  methods
+  tutorial
