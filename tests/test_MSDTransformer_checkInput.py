@@ -3,58 +3,28 @@ import numpy as np
 import pandas as pd
 import pytest
 
-def test_checkInput_weights_length(df):
+@pytest.mark.parametrize("weights", [([1]), ([1, 1, 1, 1, 'test', 1, 1, 1])])
+def test_checkInput_weights(weights, df):
     objectives = ['max', 'max', 'min', 'max', 'min', 'min', 'min', 'max']
     buses = MSDTransformer('I')
     with pytest.raises(ValueError) as err_info:
-        buses.fit(df, [1], objectives, None)
+        buses.fit(df, weights, objectives, None)
     assert err_info.type is ValueError
 
-def test_checkInput_weights_value(df):
-    objectives = ['max', 'max', 'min', 'max', 'min', 'min', 'min', 'max']
+@pytest.mark.parametrize("objectives", [(['max', 'max', 'min', 'max', 'min', 'min', 'min']), (['max', 'max', 'min', 'test', 'min', 'min', 'min', 'max'])])
+def test_checkInput_objectives(objectives, df):
     buses = MSDTransformer('I')
-    with pytest.raises(ValueError)  as err_info:
-        buses.fit(df, [1, 1, 1, 1, 'test', 1, 1, 1], objectives, None)
-    assert err_info.type is ValueError
-
-def test_checkInput_objectives_length(df):
-    objectives = ['max', 'max', 'min', 'max', 'min', 'min', 'min']
-    buses = MSDTransformer('I')
-    with pytest.raises(ValueError) as err_info :
+    with pytest.raises(ValueError) as err_info:
         buses.fit(df, None, objectives, None)
     assert err_info.type is ValueError
 
-def test_checkInput_objectives_value(df):
-    objectives = ['max', 'max', 'min', 'test', 'min', 'min', 'min', 'max']
-    buses = MSDTransformer('I')
-    with pytest.raises(ValueError)  as err_info:
-        buses.fit(df, None, objectives, None)
-    assert err_info.type is ValueError
-
-def test_checkInput_expert_range_length(df):
+@pytest.mark.parametrize("expert_range", [([[0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1]]),
+                                          ([[1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1]]),
+                                          ([['a', 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1]]),
+                                          ([[5, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1]])])
+def test_checkInput_expert_range(expert_range, df):
     objectives = ['max', 'max', 'min', 'max', 'min', 'min', 'min', 'max']
     buses = MSDTransformer('I')
-    with pytest.raises(ValueError) as err_info :
-        buses.fit(df, None, objectives, [[0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1]])
-    assert err_info.type is ValueError
-
-def test_checkInput_expert_range_values_number(df):
-    objectives = ['max', 'max', 'min', 'max', 'min', 'min', 'min', 'max']
-    buses = MSDTransformer('I')
-    with pytest.raises(ValueError) as err_info :
-        buses.fit(df, None, objectives, [[1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1]])
-    assert err_info.type is ValueError
-
-def test_checkInput_expert_range_numerical_value(df):
-    objectives = ['max', 'max', 'min', 'max', 'min', 'min', 'min', 'max']
-    buses = MSDTransformer('I')
-    with pytest.raises(ValueError) as err_info :
-        buses.fit(df, None, objectives, [['a', 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1]])
-    assert err_info.type is ValueError
-
-def test_checkInput_expert_range_min_max(df):
-    objectives = ['max', 'max', 'min', 'max', 'min', 'min', 'min', 'max']
-    buses = MSDTransformer('I')
-    with pytest.raises(ValueError) as err_info :
-        buses.fit(df, None, objectives, [[5, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1]])
+    with pytest.raises(ValueError) as err_info:
+        buses.fit(df, None, objectives, expert_range)
     assert err_info.type is ValueError
