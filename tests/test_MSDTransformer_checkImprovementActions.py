@@ -1,4 +1,4 @@
-from MSDTransformer import MSDTransformer
+from src.MSDTransformer import MSDTransformer
 import numpy as np
 import pandas as pd
 import pytest
