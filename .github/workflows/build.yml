@@ -21,6 +21,7 @@ jobs:
       - name: execute py script # run MSDTransformer.py
         env:
           SOME_SECRET: ${{ secrets.SOME_SECRET }}
-        run: python MSDTransformer.py
+        run: python src/MSDTransformer.py
+        
       - name: run unit tests
         run: python -m pytest --import-mode=append tests/
