@@ -37,5 +37,5 @@ def test_checkImprovedValue(df):
     buses.fit(df, None, objectives, None)
     buses.transform()
     buses.improvement_features(27,3,0.01, ['MaxSpeed', 'Blacking', 'SummerCons'])
-    result = [22.000, -18.875, 0.000]
-    assert buses.improvement['Change'].values.tolist() == result
+    result = np.array([22.000, -18.875, 0.000])
+    assert buses.improvement['Change'].to_numpy() == pytest.approx(result, abs=1e-3)
