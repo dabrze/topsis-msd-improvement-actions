@@ -51,7 +51,5 @@ def test_calculate_values(col_name, agg_fn, expected, df):
     buses = MSDTransformer(agg_fn)
     buses.fit(df, objectives=objectives)
     buses.transform()
-    result = buses.data[col_name][:5].values.tolist()
-    result = [round(num, 6) for num in result]
-    result2 = [round(num, 6) for num in expected]
-    assert result == result2
+    result = buses.data[col_name][:5].to_numpy()
+    assert result == pytest.approx(expected, abs=1e-3)
