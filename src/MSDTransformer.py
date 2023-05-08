@@ -15,7 +15,6 @@ class MSDTransformer(TransformerMixin):
     perform improvement actions on selected alternative.
     
     ...
-
     Attributes
     ----------
     original_data : dataframe
@@ -63,7 +62,6 @@ class MSDTransformer(TransformerMixin):
 
     def fit(self, data, weights=None, objectives=None, expert_range=None):
         """Checks input data and normalizes it.
-
         Parameters
         ----------
         data : dataframe
@@ -144,20 +142,19 @@ class MSDTransformer(TransformerMixin):
         if(not self.isFitted):
             raise Exception("fit is required before transform")
 
-        self.__calulateMean()
-        self.__calculateSD()
+        self.__wmstd()
+        #self.__calulateMean()
+        #self.__calculateSD()
         self.__topsis()
 
         self.ranked_alternatives = self.__ranking()
 
     def inverse_transform(self, target):
         """ TO DO
-
         Parameters
         ----------
         target : none
             TO DO
-
         Returns
         -------
         TO DO
@@ -415,7 +412,6 @@ class MSDTransformer(TransformerMixin):
     def improvement_features(self, position, improvement, improvement_ratio, features_to_change):
       """Calculates minimal change of the criteria,
       needed to change a rank of given alternative.
-
         Parameters
         ----------
         position : int
@@ -435,28 +431,25 @@ class MSDTransformer(TransformerMixin):
 
       is_improvement_sayisfactory = False
 
+      w = self.weights
+      s = np.sqrt(sum(w*w))/np.mean(w)
       for i in features_to_change:
         alternative_to_improve[i] = 1
-        mean = alternative_to_improve.mean()
-        std = alternative_to_improve.std()
-        if self.agg_fn == "I":
-          AggFn = 1-np.sqrt((1-mean)*(1-mean) + std*std)
-        elif self.agg_fn == "A":
-          AggFn = np.sqrt(mean*mean + std*std)
-        else:
-          AggFn = np.sqrt(mean*mean + std*std)/(np.sqrt((1-mean)*(1-mean) + std*std) + np.sqrt(mean*mean + std*std))
+        v = alternative_to_improve * w
+        vw = (sum(v * w)/sum(w * w)) * w
+        mean = np.sqrt(sum(vw*vw))/s
+        std = np.sqrt(sum((v-vw)*(v-vw)))/s
+        AggFn = self.agg(mean, std)
+        
         if AggFn < alternative_to_overcome["AggFn"]:
           continue
 
         alternative_to_improve[i] = 0.5
-        mean = alternative_to_improve.mean()
-        std = alternative_to_improve.std()
-        if self.agg_fn == "I":
-          AggFn = 1-np.sqrt((1-mean)*(1-mean) + std*std)
-        elif self.agg_fn == "A":
-          AggFn = np.sqrt(mean*mean + std*std)
-        else:
-          AggFn = np.sqrt(mean*mean + std*std)/(np.sqrt((1-mean)*(1-mean) + std*std) + np.sqrt(mean*mean + std*std))
+        v = alternative_to_improve * w
+        vw = (sum(v * w)/sum(w * w)) * w
+        mean = np.sqrt(sum(vw*vw))/s
+        std = np.sqrt(sum((v-vw)*(v-vw)))/s
+        AggFn = self.agg(mean, std)
         change_ratio = 0.25
         while True: 
           if AggFn < alternative_to_overcome["AggFn"]:
@@ -467,14 +460,11 @@ class MSDTransformer(TransformerMixin):
             is_improvement_sayisfactory = True
             break
           change_ratio = change_ratio/2
-          mean = alternative_to_improve.mean()
-          std = alternative_to_improve.std()
-          if self.agg_fn == "I":
-            AggFn = 1-np.sqrt((1-mean)*(1-mean) + std*std)
-          elif self.agg_fn == "A":
-            AggFn = np.sqrt(mean*mean + std*std)
-          else:
-            AggFn = np.sqrt(mean*mean + std*std)/(np.sqrt((1-mean)*(1-mean) + std*std) + np.sqrt(mean*mean + std*std))
+          v = alternative_to_improve * w
+          vw = (sum(v * w)/sum(w * w)) * w
+          mean = np.sqrt(sum(vw*vw))/s
+          std = np.sqrt(sum((v-vw)*(v-vw)))/s
+          AggFn = self.agg(mean, std)
         
         if is_improvement_sayisfactory:
           alternative_to_improve -= self.data.loc[self.ranked_alternatives[position]].copy().drop(labels = ["Mean", "Std", "AggFn"])
@@ -575,6 +565,23 @@ class MSDTransformer(TransformerMixin):
         weights = np.array([float(i)/max(weights) for i in weights])
         return weights
 
+    def __wmstd(self):
+
+      w = self.weights
+      s = np.sqrt(sum(w*w))/np.mean(w)
+      wm = []
+      wsd = []
+      for index, row in self.data.iterrows():
+        v = row * w
+        vw = (sum(v * w)/sum(w * w)) * w
+        wm.append(np.sqrt(sum(vw*vw))/s)
+        wsd.append(np.sqrt(sum((v-vw)*(v-vw)))/s)
+
+      self.data['Mean'] = wm
+      self.data['Std'] = wsd
+
+
+
     def __calulateMean(self):
         """calculates and ads mean column to dataframe"""
         self.data['Mean'] = self.data.mean(axis=1)
@@ -583,9 +590,27 @@ class MSDTransformer(TransformerMixin):
         """calculates and ads standard dewiatiom column to dataframe"""
         self.data['Std'] = self.data.std(axis=1)
 
+    def agg(self, wm, wsd):
+        w = np.mean(self.weights)
+        if type(self.agg_fn) == str:
+            if self.agg_fn == 'I':
+                return 1 - np.sqrt((w-wm) * (w-wm) + wsd*wsd)/w
+            elif self.agg_fn == 'A':
+                return np.sqrt(wm*wm + wsd*wsd)/w
+            elif self.agg_fn == 'R':
+                return np.sqrt(wm*wm + wsd*wsd)/(np.sqrt(wm*wm + wsd*wsd) + np.sqrt((w-wm) * (w-wm) + wsd))
+        else:
+            return self.agg_fn
+
     def __topsis(self):
         """calculates and ads topsis value column to dataframe"""
-        if type(self.agg_fn) == str:
+
+        self.data['AggFn'] = self.agg(self.data['Mean'], self.data['Std'])
+
+        
+
+
+        '''if type(self.agg_fn) == str:
             if self.agg_fn == 'I':
                 self.data['AggFn'] = 1 - np.sqrt((1-self.data['Mean'])*(
                     1-self.data['Mean'])+(self.data['Std']*self.data['Std']))
@@ -596,7 +621,9 @@ class MSDTransformer(TransformerMixin):
                 self.data['AggFn'] = (np.sqrt(self.data['Mean']*self.data['Mean']+(self.data['Std']*self.data['Std'])))/(((1 - np.sqrt((1-self.data['Mean'])*(
                     1-self.data['Mean'])+(self.data['Std']*self.data['Std'])))-1)*(-1) + (np.sqrt(self.data['Mean']*self.data['Mean']+(self.data['Std']*self.data['Std']))))
         else:
-            self.data['AggFn'] = self.agg_fn
+            self.data['AggFn'] = self.agg_fn'''
+
+
 
     def __ranking(self):
         """creates a ranking from the data based on topsis value column"""
