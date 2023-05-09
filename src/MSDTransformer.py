@@ -142,12 +142,13 @@ class MSDTransformer(TransformerMixin):
         if(not self.isFitted):
             raise Exception("fit is required before transform")
 
-        self.__wmstd()
-        #self.__calulateMean()
-        #self.__calculateSD()
-        self.__topsis()
+        if(len(self.data.columns) == len(self.weights)):
+            self.__wmstd()
+            #self.__calulateMean()
+            #self.__calculateSD()
+            self.__topsis()
 
-        self.ranked_alternatives = self.__ranking()
+            self.ranked_alternatives = self.__ranking()
 
     def inverse_transform(self, target):
         """ TO DO
@@ -598,7 +599,7 @@ class MSDTransformer(TransformerMixin):
             elif self.agg_fn == 'A':
                 return np.sqrt(wm*wm + wsd*wsd)/w
             elif self.agg_fn == 'R':
-                return np.sqrt(wm*wm + wsd*wsd)/(np.sqrt(wm*wm + wsd*wsd) + np.sqrt((w-wm) * (w-wm) + wsd))
+                return np.sqrt(wm*wm + wsd*wsd)/(np.sqrt(wm*wm + wsd*wsd) + np.sqrt((w-wm) * (w-wm) + wsd*wsd))
         else:
             return self.agg_fn
 
