@@ -372,6 +372,98 @@ class MSDTransformer(TransformerMixin):
         #print("Created plot in ", (toc - tic), " seconds")
         return
     
+    def improvement_mean(self, position, improvement, improvement_ratio):
+      alternative_to_improve = self.data.loc[self.ranked_alternatives[position]].copy()
+      alternative_to_overcome = self.data.loc[self.ranked_alternatives[position - improvement]].copy()
+      m_boundry = np.mean(self.weights)
+      if self.agg(m_boundry, alternative_to_improve["Std"]) < alternative_to_overcome["AggFn"]:
+        print("It is impossible to improve with only mean")
+      else:
+        change = (m_boundry - alternative_to_improve["Mean"])/2
+        actual_aggfn = self.agg(alternative_to_improve["Mean"], alternative_to_improve["Std"])
+        while True:
+          if actual_aggfn > alternative_to_overcome["AggFn"]:
+            if actual_aggfn - alternative_to_overcome["AggFn"] > improvement_ratio:
+              alternative_to_improve["Mean"] -= change
+              change = change/2
+              actual_aggfn = self.agg(alternative_to_improve["Mean"], alternative_to_improve["Std"])
+            else:
+              break
+          else:
+            alternative_to_improve["Mean"] += change
+            change = change/2
+            actual_aggfn = self.agg(alternative_to_improve["Mean"], alternative_to_improve["Std"])
+        print("You should change mean by ", alternative_to_improve["Mean"] - self.data.loc[self.ranked_alternatives[position]]["Mean"])
+
+    def improvement_std(self, position, improvement, improvement_ratio):
+      alternative_to_improve = self.data.loc[self.ranked_alternatives[position]].copy()
+      alternative_to_overcome = self.data.loc[self.ranked_alternatives[position - improvement]].copy()
+      sd_boundry = np.mean(self.weights)/2
+      if (self.agg_fn == "A") or (self.agg_fn == "R" and alternative_to_improve["Mean"]<sd_boundry):
+        if self.agg(alternative_to_improve["Mean"], sd_boundry) < alternative_to_overcome["AggFn"]:
+          print("It is impossible to improve with only standard deviation")
+        else:
+          change = (sd_boundry - alternative_to_improve["Std"])/2
+          actual_aggfn = self.agg(alternative_to_improve["Mean"], alternative_to_improve["Std"])
+          while True:
+            if actual_aggfn > alternative_to_overcome["AggFn"]:
+              if actual_aggfn - alternative_to_overcome["AggFn"] > improvement_ratio:
+                alternative_to_improve["Std"] -= change
+                change = change/2
+                actual_aggfn = self.agg(alternative_to_improve["Mean"], alternative_to_improve["Std"])
+              else:
+                break
+            else:
+              alternative_to_improve["Std"] += change
+              change = change/2
+              actual_aggfn = self.agg(alternative_to_improve["Mean"], alternative_to_improve["Std"])
+          print("You should change standard deviation by ", alternative_to_improve["Std"] - self.data.loc[self.ranked_alternatives[position]]["Std"])
+      else:
+        if self.agg(alternative_to_improve["Mean"], 0) < alternative_to_overcome["AggFn"]:
+          print("It is impossible to improve with only standard deviation")
+        else:
+          change = alternative_to_improve["Std"]/2
+          actual_aggfn = self.agg(alternative_to_improve["Mean"], alternative_to_improve["Std"])
+          while True:
+            if actual_aggfn > alternative_to_overcome["AggFn"]:
+              if actual_aggfn - alternative_to_overcome["AggFn"] > improvement_ratio:
+                alternative_to_improve["Std"] += change
+                change = change/2
+                actual_aggfn = self.agg(alternative_to_improve["Mean"], alternative_to_improve["Std"])
+              else:
+                break
+            else:
+              alternative_to_improve["Std"] -= change
+              change = change/2
+              actual_aggfn = self.agg(alternative_to_improve["Mean"], alternative_to_improve["Std"])
+          print("You should change standard deviation by ", self.data.loc[self.ranked_alternatives[position]]["Std"] - alternative_to_improve["Std"])
+
+    def improvement_full(self, position, improvement, improvement_ratio):
+      alternative_to_improve = self.data.loc[self.ranked_alternatives[position]].copy()
+      alternative_to_overcome = self.data.loc[self.ranked_alternatives[position - improvement]].copy()
+      m_boundry = np.mean(self.weights)
+      change_m = (m_boundry - alternative_to_improve["Mean"])/2
+      change_sd = alternative_to_improve["Std"]/2
+      actual_aggfn = self.agg(alternative_to_improve["Mean"], alternative_to_improve["Std"])
+      while True:
+        if actual_aggfn > alternative_to_overcome["AggFn"]:
+          if actual_aggfn - alternative_to_overcome["AggFn"] > improvement_ratio:
+            alternative_to_improve["Std"] += change_sd
+            alternative_to_improve["Mean"] -= change_m
+            change_sd = change_sd/2
+            change_m = change_m/2
+            actual_aggfn = self.agg(alternative_to_improve["Mean"], alternative_to_improve["Std"])
+          else:
+            break
+        else:
+          alternative_to_improve["Std"] -= change_sd
+          alternative_to_improve["Mean"]+= change_m
+          change_sd = change_sd/2
+          change_m = change_m/2
+          actual_aggfn = self.agg(alternative_to_improve["Mean"], alternative_to_improve["Std"])
+      print("You should change standard deviation by ", self.data.loc[self.ranked_alternatives[position]]["Std"] - alternative_to_improve["Std"]," and mean by ", alternative_to_improve["Mean"] - self.data.loc[self.ranked_alternatives[position]]["Mean"])
+
+    
     def improvement_basic(self, position, improvement, improvement_ratio):
       """Calculates minimal change of mean and standard deviation,
       needed to change a rank of given alternative.
