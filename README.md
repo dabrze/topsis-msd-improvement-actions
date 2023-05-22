@@ -16,3 +16,8 @@ Type in the command line:
 
 ## Sources
 This project is inspired by the paper "MSD-space: Visualizing the Inner-Workings of TOPSIS Aggregations" by Robert Susmaga, Izabela Szczęch, Piotr Zielniewicz, Dariusz Brzeziński [PUT 2022].
+
+## TODO
+Include information for contributors
+Include citation information
+Include licensing information
