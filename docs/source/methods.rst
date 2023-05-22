@@ -1,4 +1,4 @@
-Methods
+API
 =======
 
 .. autoclass:: MSDTransformer.MSDTransformer
