@@ -676,11 +676,11 @@ class MSDTransformer(TransformerMixin):
 
 
     def __calulateMean(self):
-        """calculates and ads mean column to dataframe"""
+        """calculates and adds mean column to dataframe"""
         self.data['Mean'] = self.data.mean(axis=1)
 
     def __calculateSD(self):
-        """calculates and ads standard dewiatiom column to dataframe"""
+        """calculates and adds standard dewiatiom column to dataframe"""
         self.data['Std'] = self.data.std(axis=1)
 
     def agg(self, wm, wsd):
@@ -696,7 +696,7 @@ class MSDTransformer(TransformerMixin):
             return self.agg_fn
 
     def __topsis(self):
-        """calculates and ads topsis value column to dataframe"""
+        """calculates and adds topsis value column to dataframe"""
 
         self.data['AggFn'] = self.agg(self.data['Mean'], self.data['Std'])
 
