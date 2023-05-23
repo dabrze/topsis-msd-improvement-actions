@@ -40,7 +40,7 @@ class MSDTransformer(TransformerMixin):
     topsis_val : list of float
         List of calculated TOPSIS values of self.dataframe.
     ranked_alternatives : list of str
-        List of alternatives' ID's orederd according to their TOPSIS values.
+        List of alternatives' ID's ordered according to their TOPSIS values.
     """
 
     # ---------------------------------------------------------
@@ -69,14 +69,14 @@ class MSDTransformer(TransformerMixin):
             Apart of column and row names all values must be numerical.
         weights : np.array of float, optional
             Numpy array of criteria' weights. 
-            Its lenght must be equal to self.m.
+            Its length must be equal to self.m.
             (default: np.ones())
         objectives : list or dict or str, optional
             Numpy array informing which criteria are cost type and which are gain type.
             It can be passed as:
-            - list of lenght equal to self.m. in which each element describes type of one criterion:
+            - list of length equal to self.m. in which each element describes type of one criterion:
             'cost'/'c'/'min' for cost type criteria and 'gain'/'g'/'max' for gain type criteria.
-            - dictonary of size equal to self.m in which each key is the criterion name and ech value takes one of the following values:
+            - dictionary of size equal to self.m in which each key is the criterion name and ech value takes one of the following values:
             'cost'/'c'/'min' for cost type criteria and 'gain'/'g'/'max' for gain type criteria.
             - a string which describes type of all criteria:
             'cost'/'c'/'min' if criteria are cost type and 'gain'/'g'/'max' if criteria are gain type.
@@ -144,7 +144,7 @@ class MSDTransformer(TransformerMixin):
 
         if(len(self.data.columns) == len(self.weights)):
             self.__wmstd()
-            #self.__calulateMean()
+            #self.__calculateMean()
             #self.__calculateSD()
             self.__topsis()
 
@@ -279,7 +279,7 @@ class MSDTransformer(TransformerMixin):
         ### distance between before and after
 
         j = 1
-        treshole = 0.015
+        threshold = 0.015
         indexes = temp_DataFrame.index.tolist()
         isGood = False
         
@@ -295,7 +295,7 @@ class MSDTransformer(TransformerMixin):
                     Dif_A = temp_DataFrame['Std'][indexes[j]] - temp_DataFrame['Std'][indexes[j+1]]
                     
 
-                    if ((Dif_A>=0 or Dif_B>=0) or ((Dif_B >= (-1)*treshole and Dif_A >= (-1)*treshole))):
+                    if ((Dif_A>=0 or Dif_B>=0) or ((Dif_B >= (-1)*threshold and Dif_A >= (-1)*threshold))):
                         j+=1
                     else:
                         isGood = False
@@ -375,11 +375,11 @@ class MSDTransformer(TransformerMixin):
     def improvement_mean(self, position, improvement, improvement_ratio):
       alternative_to_improve = self.data.loc[self.ranked_alternatives[position]].copy()
       alternative_to_overcome = self.data.loc[self.ranked_alternatives[position - improvement]].copy()
-      m_boundry = np.mean(self.weights)
-      if self.agg(m_boundry, alternative_to_improve["Std"]) < alternative_to_overcome["AggFn"]:
+      m_boundary = np.mean(self.weights)
+      if self.agg(m_boundary, alternative_to_improve["Std"]) < alternative_to_overcome["AggFn"]:
         print("It is impossible to improve with only mean")
       else:
-        change = (m_boundry - alternative_to_improve["Mean"])/2
+        change = (m_boundary - alternative_to_improve["Mean"])/2
         actual_aggfn = self.agg(alternative_to_improve["Mean"], alternative_to_improve["Std"])
         while True:
           if actual_aggfn > alternative_to_overcome["AggFn"]:
@@ -398,12 +398,12 @@ class MSDTransformer(TransformerMixin):
     def improvement_std(self, position, improvement, improvement_ratio):
       alternative_to_improve = self.data.loc[self.ranked_alternatives[position]].copy()
       alternative_to_overcome = self.data.loc[self.ranked_alternatives[position - improvement]].copy()
-      sd_boundry = np.mean(self.weights)/2
-      if (self.agg_fn == "A") or (self.agg_fn == "R" and alternative_to_improve["Mean"]<sd_boundry):
-        if self.agg(alternative_to_improve["Mean"], sd_boundry) < alternative_to_overcome["AggFn"]:
+      sd_boundary = np.mean(self.weights)/2
+      if (self.agg_fn == "A") or (self.agg_fn == "R" and alternative_to_improve["Mean"]<sd_boundary):
+        if self.agg(alternative_to_improve["Mean"], sd_boundary) < alternative_to_overcome["AggFn"]:
           print("It is impossible to improve with only standard deviation")
         else:
-          change = (sd_boundry - alternative_to_improve["Std"])/2
+          change = (sd_boundary - alternative_to_improve["Std"])/2
           actual_aggfn = self.agg(alternative_to_improve["Mean"], alternative_to_improve["Std"])
           while True:
             if actual_aggfn > alternative_to_overcome["AggFn"]:
@@ -441,8 +441,8 @@ class MSDTransformer(TransformerMixin):
     def improvement_full(self, position, improvement, improvement_ratio):
       alternative_to_improve = self.data.loc[self.ranked_alternatives[position]].copy()
       alternative_to_overcome = self.data.loc[self.ranked_alternatives[position - improvement]].copy()
-      m_boundry = np.mean(self.weights)
-      change_m = (m_boundry - alternative_to_improve["Mean"])/2
+      m_boundary = np.mean(self.weights)
+      change_m = (m_boundary - alternative_to_improve["Mean"])/2
       change_sd = alternative_to_improve["Std"]/2
       actual_aggfn = self.agg(alternative_to_improve["Mean"], alternative_to_improve["Std"])
       while True:
@@ -522,7 +522,7 @@ class MSDTransformer(TransformerMixin):
       alternative_to_improve = alternative_to_improve.drop(labels = ["Mean", "Std", "AggFn"])
       feature_pointer = 0
 
-      is_improvement_sayisfactory = False
+      is_improvement_satisfactory = False
 
       w = self.weights
       s = np.sqrt(sum(w*w))/np.mean(w)
@@ -550,7 +550,7 @@ class MSDTransformer(TransformerMixin):
           elif AggFn - alternative_to_overcome["AggFn"] > improvement_ratio:
             alternative_to_improve[i] -= change_ratio
           else:
-            is_improvement_sayisfactory = True
+            is_improvement_satisfactory = True
             break
           change_ratio = change_ratio/2
           v = alternative_to_improve * w
@@ -559,7 +559,7 @@ class MSDTransformer(TransformerMixin):
           std = np.sqrt(sum((v-vw)*(v-vw)))/s
           AggFn = self.agg(mean, std)
         
-        if is_improvement_sayisfactory:
+        if is_improvement_satisfactory:
           alternative_to_improve -= self.data.loc[self.ranked_alternatives[position]].copy().drop(labels = ["Mean", "Std", "AggFn"])
           for j in range(len(alternative_to_improve)):
             if(alternative_to_improve[j] == 0):
@@ -581,11 +581,11 @@ class MSDTransformer(TransformerMixin):
               improvements[i] = self.value_range[features_to_change[i]] * improvements[i]
             else:
               improvements[i] = -(self.value_range[features_to_change[i]] * improvements[i])
-          print("to achive that you should change your features by this values:")
+          print("to achieve that you should change your features by this values:")
           print(improvements)
 
       else:
-        print("This set of features to change is not sufficiant to overcame that alternative")
+        print("This set of features to change is not sufficient to overcame that alternative")
 
 
     # ---------------------------------------------------------
@@ -610,7 +610,7 @@ class MSDTransformer(TransformerMixin):
         if(self.expert_range != None):
             if(len(self.expert_range) != len(self.objectives)):
                 raise ValueError(
-                    "Invalid value at 'expert_range'. Length of should be equal to number of critetrias.")
+                    "Invalid value at 'expert_range'. Length of should be equal to number of criteria.")
             for col in self.expert_range:
                 if(len(col) != 2):
                     raise ValueError(
@@ -623,11 +623,11 @@ class MSDTransformer(TransformerMixin):
 
     def __normalizeData(self, data):
         """normalize given data using either given expert range or min/max
-        uses the minmax normalization with minimum and maximum taken from expert ranges if given
+        uses the min-max normalization with minimum and maximum taken from expert ranges if given
         Parameters
         ----------
         data : dataframe
-            data to be normalised
+            data to be normalized
         """
         if self.expert_range is None:
             self.value_range = data.max()-data.min()
@@ -653,7 +653,7 @@ class MSDTransformer(TransformerMixin):
         Parameters
         ----------
         weights : np.array
-            weights to be normalised
+            weights to be normalized
         """
         weights = np.array([float(i)/max(weights) for i in weights])
         return weights
@@ -675,12 +675,12 @@ class MSDTransformer(TransformerMixin):
 
 
 
-    def __calulateMean(self):
+    def __calculateMean(self):
         """calculates and adds mean column to dataframe"""
         self.data['Mean'] = self.data.mean(axis=1)
 
     def __calculateSD(self):
-        """calculates and adds standard dewiatiom column to dataframe"""
+        """calculates and adds standard deviation column to dataframe"""
         self.data['Std'] = self.data.std(axis=1)
 
     def agg(self, wm, wsd):
