@@ -57,7 +57,7 @@ class MSDTransformer(TransformerMixin):
             "I", "A", "R".
         """
 
-        self.agg_fn = (agg_fn if type(agg_fn) == str else agg_fn)
+        self.agg_fn = agg_fn
         self.isFitted = False
 
     def fit(self, data, weights=None, objectives=None, expert_range=None):
@@ -685,15 +685,12 @@ class MSDTransformer(TransformerMixin):
 
     def agg(self, wm, wsd):
         w = np.mean(self.weights)
-        if type(self.agg_fn) == str:
-            if self.agg_fn == 'I':
-                return 1 - np.sqrt((w-wm) * (w-wm) + wsd*wsd)/w
-            elif self.agg_fn == 'A':
-                return np.sqrt(wm*wm + wsd*wsd)/w
-            elif self.agg_fn == 'R':
-                return np.sqrt(wm*wm + wsd*wsd)/(np.sqrt(wm*wm + wsd*wsd) + np.sqrt((w-wm) * (w-wm) + wsd*wsd))
-        else:
-            return self.agg_fn
+        if self.agg_fn == 'I':
+            return 1 - np.sqrt((w-wm) * (w-wm) + wsd*wsd)/w
+        elif self.agg_fn == 'A':
+            return np.sqrt(wm*wm + wsd*wsd)/w
+        elif self.agg_fn == 'R':
+            return np.sqrt(wm*wm + wsd*wsd)/(np.sqrt(wm*wm + wsd*wsd) + np.sqrt((w-wm) * (w-wm) + wsd*wsd))
 
     def __topsis(self):
         """calculates and adds topsis value column to dataframe"""
@@ -752,22 +749,21 @@ class MSDTransformer(TransformerMixin):
         temp_data = updated_data.copy()
         temp_data = self.__normalizeData(temp_data)
 
-        temp_data['Mean'] = temp_data.mean(axis=1)
-        temp_data['Std'] = temp_data.std(axis=1)
+        w = self.weights
+        s = np.sqrt(sum(w*w))/np.mean(w)
+        wm = []
+        wsd = []
+        for index, row in self.data.iterrows():
+          v = row * w
+          vw = (sum(v * w)/sum(w * w)) * w
+          wm.append(np.sqrt(sum(vw*vw))/s)
+          wsd.append(np.sqrt(sum((v-vw)*(v-vw)))/s)
+
+        temp_data['Mean'] = wm
+        temp_data['Std'] = wsd
 
 
-        if type(self.agg_fn) == str:
-            if self.agg_fn == 'I':
-                temp_data['AggFn'] = 1 - np.sqrt((1-temp_data['Mean'])*(
-                    1-temp_data['Mean'])+(temp_data['Std']*temp_data['Std']))
-            elif self.agg_fn == 'A':
-                temp_data['AggFn'] = np.sqrt(
-                    temp_data['Mean']*temp_data['Mean']+(temp_data['Std']*temp_data['Std']))
-            elif self.agg_fn == 'R':
-                temp_data['AggFn'] = (np.sqrt(temp_data['Mean']*temp_data['Mean']+(temp_data['Std']*temp_data['Std'])))/(((1 - np.sqrt((1-temp_data['Mean'])*(
-                    1-temp_data['Mean'])+(temp_data['Std']*temp_data['Std'])))-1)*(-1) + (np.sqrt(temp_data['Mean']*temp_data['Mean']+(temp_data['Std']*temp_data['Std']))))
-        else:
-            temp_data['AggFn'] = self.agg_fn
+        temp_data['AggFn'] = self.agg(self.data['Mean'], self.data['Std'])
         
         updated_data['AggFn'] = temp_data['AggFn']
         updated_data = updated_data.sort_values(by='AggFn', ascending=False)
