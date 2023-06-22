@@ -7,9 +7,9 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import itertools
 from IPython.display import display
-import __ImprovementActions
+from __ImprovementActions import ImprovementActionsMixin
 
-class MSDTransformer(TransformerMixin, __ImprovementActions.ImprovementActionsMixin):
+class MSDTransformer(TransformerMixin, ImprovementActionsMixin):
     """
     A class used to: calculate TOPSIS ranking,
     plot positions of alternatives in MSD space,
