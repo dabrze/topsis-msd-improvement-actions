@@ -94,7 +94,7 @@ class MSDTransformer(TransformerMixin):
         self.original_weights = (weights if weights is not None else np.ones(self.n))
         self.weights = self.original_weights.copy()
 
-        self.objectives = __setObjectives(objectives)
+        self.objectives = self.__setObjectives(objectives)
         
         self.expert_range = expert_range
 
@@ -656,8 +656,6 @@ class MSDTransformer(TransformerMixin):
       self.data['Mean'] = wm
       self.data['Std'] = wsd
 
-
-
     def __calculateMean(self):
         """calculates and adds mean column to dataframe"""
         self.data['Mean'] = self.data.mean(axis=1)
@@ -695,8 +693,6 @@ class MSDTransformer(TransformerMixin):
                     1-self.data['Mean'])+(self.data['Std']*self.data['Std'])))-1)*(-1) + (np.sqrt(self.data['Mean']*self.data['Mean']+(self.data['Std']*self.data['Std']))))
         else:
             self.data['AggFn'] = self.agg_fn'''
-
-
 
     def __ranking(self):
         """creates a ranking from the data based on topsis value column"""
