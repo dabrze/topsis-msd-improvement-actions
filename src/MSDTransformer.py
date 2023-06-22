@@ -445,7 +445,6 @@ class MSDTransformer(TransformerMixin):
           actual_aggfn = self.__defineAggregationFunction(alternative_to_improve["Mean"], alternative_to_improve["Std"])
       print("You should change standard deviation by ", self.data.loc[self.ranked_alternatives[position]]["Std"] - alternative_to_improve["Std"]," and mean by ", alternative_to_improve["Mean"] - self.data.loc[self.ranked_alternatives[position]]["Mean"])
 
-    
     def improvement_basic(self, position, improvement, improvement_ratio):
       """Calculates minimal change of mean and standard deviation,
       needed to change a rank of given alternative.
