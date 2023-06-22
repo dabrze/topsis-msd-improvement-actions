@@ -94,26 +94,8 @@ class MSDTransformer(TransformerMixin):
         self.original_weights = (weights if weights is not None else np.ones(self.n))
         self.weights = self.original_weights.copy()
 
-        self.objectives = objectives
-
-        if(type(objectives) is list):
-            self.objectives = objectives
-        elif(type(objectives) is str):
-            self.objectives = np.repeat(objectives, self.n)
-        elif(type(objectives) is dict):
-            self.objectives = self.__dictToObjectivesList(objectives)
-        elif(objectives is None):
-            self.objectives = np.repeat('max', self.n)
-
-        self.objectives = list(
-            map(lambda x: x.replace('gain', 'max'), self.objectives))
-        self.objectives = list(
-            map(lambda x: x.replace('g', 'max'), self.objectives))
-        self.objectives = list(
-            map(lambda x: x.replace('cost', 'min'), self.objectives))
-        self.objectives = list(
-            map(lambda x: x.replace('c', 'min'), self.objectives))
-
+        self.objectives = __setObjectives(objectives)
+        
         self.expert_range = expert_range
 
         #self.mean_col = []
@@ -721,6 +703,30 @@ class MSDTransformer(TransformerMixin):
         data__ = data__.sort_values(by='AggFn', ascending=False)
         arranged = data__.index.tolist()
         return arranged
+
+    def __setObjectives(self, objectives):
+        
+        proper_objectives = objectives
+
+        if(type(objectives) is list):
+            proper_objectives = objectives
+        elif(type(objectives) is str):
+            proper_objectives = np.repeat(objectives, self.n)
+        elif(type(objectives) is dict):
+            proper_objectives = self.__dictToObjectivesList(objectives)
+        elif(objectives is None):
+            proper_objectives = np.repeat('max', self.n)
+
+        proper_objectives = list(
+            map(lambda x: x.replace('gain', 'max'), proper_objectives))
+        proper_objectives = list(
+            map(lambda x: x.replace('g', 'max'), proper_objectives))
+        proper_objectives = list(
+            map(lambda x: x.replace('cost', 'min'), proper_objectives))
+        proper_objectives = list(
+            map(lambda x: x.replace('c', 'min'), proper_objectives))
+
+        return proper_objectives
 
     def __dictToObjectivesList(self, objectives_dict):
         objectives_list = []
