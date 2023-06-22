@@ -21,7 +21,7 @@ class MSDTransformer(TransformerMixin):
         Pandas dataframe provided by the user.
     data : dataframe
         A copy of self.original_data, on which all calculations are performed.
-    m_to_n : int
+    n : int
         Number of dataframe's columns
     m : int
         Number of dataframe's rows
