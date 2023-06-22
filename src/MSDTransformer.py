@@ -21,9 +21,9 @@ class MSDTransformer(TransformerMixin):
         Pandas dataframe provided by the user.
     data : dataframe
         A copy of self.original_data, on which all calculations are performed.
-    m : int
+    m_to_n : int
         Number of dataframe's columns
-    n : int
+    m : int
         Number of dataframe's rows
     original_weights : np.array of float
         Numpy array of criteria' weights.
@@ -69,14 +69,14 @@ class MSDTransformer(TransformerMixin):
             Apart of column and row names all values must be numerical.
         weights : np.array of float, optional
             Numpy array of criteria' weights. 
-            Its length must be equal to self.m.
+            Its length must be equal to self.n.
             (default: np.ones())
         objectives : list or dict or str, optional
             Numpy array informing which criteria are cost type and which are gain type.
             It can be passed as:
-            - list of length equal to self.m. in which each element describes type of one criterion:
+            - list of length equal to self.n. in which each element describes type of one criterion:
             'cost'/'c'/'min' for cost type criteria and 'gain'/'g'/'max' for gain type criteria.
-            - dictionary of size equal to self.m in which each key is the criterion name and ech value takes one of the following values:
+            - dictionary of size equal to self.n in which each key is the criterion name and ech value takes one of the following values:
             'cost'/'c'/'min' for cost type criteria and 'gain'/'g'/'max' for gain type criteria.
             - a string which describes type of all criteria:
             'cost'/'c'/'min' if criteria are cost type and 'gain'/'g'/'max' if criteria are gain type.
@@ -88,10 +88,10 @@ class MSDTransformer(TransformerMixin):
         self.original_data = data
 
         self.data = self.original_data.copy()
-        self.m = self.data.shape[1]
-        self.n = self.data.shape[0]
+        self.n = self.data.shape[1]
+        self.m = self.data.shape[0]
 
-        self.original_weights = (weights if weights is not None else np.ones(self.m))
+        self.original_weights = (weights if weights is not None else np.ones(self.n))
         self.weights = self.original_weights.copy()
 
         self.objectives = objectives
@@ -99,11 +99,11 @@ class MSDTransformer(TransformerMixin):
         if(type(objectives) is list):
             self.objectives = objectives
         elif(type(objectives) is str):
-            self.objectives = np.repeat(objectives, self.m)
+            self.objectives = np.repeat(objectives, self.n)
         elif(type(objectives) is dict):
             self.objectives = self.__dictToObjectivesList(objectives)
         elif(objectives is None):
-            self.objectives = np.repeat('max', self.m)
+            self.objectives = np.repeat('max', self.n)
 
         self.objectives = list(
             map(lambda x: x.replace('gain', 'max'), self.objectives))
@@ -594,13 +594,13 @@ class MSDTransformer(TransformerMixin):
 
     def __checkInput(self):
       
-        if (len(self.weights) != self.m):
+        if (len(self.weights) != self.n):
             raise ValueError("Invalid value 'weights'.")
 
         if(not all(type(item) in [int, float, np.float64] for item in self.weights)):
             raise ValueError("Invalid value 'weights'. Expected numerical value (int or float).")
 
-        if (len(self.objectives) != self.m):
+        if (len(self.objectives) != self.n):
             raise ValueError("Invalid value 'objectives'.")
 
         if(not all(item in ["min", "max"] for item in self.objectives)):
@@ -641,7 +641,7 @@ class MSDTransformer(TransformerMixin):
                 self.value_range.append(self.expert_range[c][1] - self.expert_range[c][0])
                 c += 1
 
-        for i in range(self.m):
+        for i in range(self.n):
             if self.objectives[i] == 'min':
                 data[data.columns[i]] = 1 - data[data.columns[i]]
 
