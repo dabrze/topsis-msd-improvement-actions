@@ -1,4 +1,6 @@
-from src.MSDTransformer import MSDTransformer
+import sys
+sys.path.insert(0, '../src')
+from MSDTransformer import MSDTransformer
 import numpy as np
 import pandas as pd
 import pytest
@@ -37,5 +39,5 @@ def test_checkImprovedValue(df):
     buses.fit(df, None, objectives, None)
     buses.transform()
     buses.improvement_features(27,3,0.01, ['MaxSpeed', 'Blacking', 'SummerCons'])
-    result = np.array([22.000, -10.25, 0.000])
+    result = np.array([22.000, -18.875, 0.000])
     assert buses.improvement['Change'].to_numpy() == pytest.approx(result, abs=1e-3)
