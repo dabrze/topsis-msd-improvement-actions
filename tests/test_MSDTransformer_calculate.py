@@ -1,4 +1,6 @@
-from src.MSDTransformer import MSDTransformer
+import sys
+sys.path.insert(0, '../src')
+from MSDTransformer import MSDTransformer
 import numpy as np
 import pandas as pd
 import pytest
@@ -53,3 +55,4 @@ def test_calculate_values(col_name, agg_fn, expected, df):
     buses.transform()
     result = buses.data[col_name][:5].to_numpy()
     assert result == pytest.approx(expected, abs=1e-3)
+    
