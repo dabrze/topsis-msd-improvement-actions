@@ -1,4 +1,6 @@
-from src.MSDTransformer import MSDTransformer
+import sys
+sys.path.insert(0, '../src')
+from MSDTransformer import MSDTransformer
 import numpy as np
 import pandas as pd
 import pytest
