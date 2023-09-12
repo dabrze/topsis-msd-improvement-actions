@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 import numpy as np
 import pandas as pd
@@ -11,9 +12,23 @@ from IPython.display import display
 class MSDTransformer(TransformerMixin):
 
     def __init__(self, agg_fn):
+        self.agg_fn = self.check_agg_fn(agg_fn)
+        self.isFitted = False
 
-      self.agg_fn = agg_fn
-      self.isFitted = False
+    def check_agg_fn(self, agg_fn):
+        if isinstance(agg_fn, str):
+            if agg_fn == "A":
+                return ATOPSIS(self)
+            elif agg_fn == "I":
+                return ITOPSIS(self)
+            elif agg_fn == "R":
+                return RTOPSIS(self)
+            else:
+                raise ValueError("Invalid value at 'agg_fn': must be string (A, I, or R) or class implementing TOPSISAggregationFunction.")
+        elif issubclass(agg_fn, TOPSISAggregationFunction):
+            return agg_fn(self)
+        else:
+            raise ValueError("Invalid value at 'agg_fn': must be string (A, I, or R) or class implementing TOPSISAggregationFunction.")
 
     def fit(self, data, weights=None, objectives=None, expert_range=None):
 
@@ -61,7 +76,7 @@ class MSDTransformer(TransformerMixin):
 
 
     def changeAggregationFunction(self, agg_fn):
-      self.agg_fn = agg_fn
+        self.agg_fn = self.check_agg_fn(agg_fn)
 
 
     def transform(self):
@@ -74,6 +89,39 @@ class MSDTransformer(TransformerMixin):
             self.data['AggFn'] = self.agg_fn.TOPSISCalculation(np.mean(self.weights), self.data['Mean'], self.data['Std'])
 
             self.ranked_alternatives = self.__ranking()
+
+    def transform_new_data(self, X, normalize_data=False, print_ranks=False):
+        if not self.isFitted:
+            raise Exception("fit is required before transforming new data")
+
+        if normalize_data:
+            # TODO Make sure that the performances of the new alternatives does not exceed the initially established range of evaluations
+            X_US = (np.array(X) - np.array(self.lower_bounds)) / np.array(self.value_range)
+
+            for i in range(self.m):
+                if self.objectives[i] == 'min':
+                    X_US[:, i] = 1 - X_US[:, i]
+        else:
+            X_US = np.array(X)
+
+        w_means, w_stds = self.transform_US_to_wmsd(X_US)
+        agg_values = self.agg_fn.TOPSISCalculation(np.mean(self.weights), w_means, w_stds)
+        if print_ranks:
+            ranking_func = np.vectorize(lambda agg_value: 1 + np.sum(self.data['AggFn'] > agg_value))
+            ranks = ranking_func(agg_values)
+            print(agg_values, ranks)
+        return w_means, w_stds, agg_values
+
+    def transform_US_to_wmsd(self, X_US):
+        # transform data from Utility Space to WMSD Space
+        w = self.weights
+        s = np.linalg.norm(w) / np.mean(w)
+        v = X_US * w
+
+        vw = (np.sum(v * w, axis=1) / np.sum(w ** 2)).reshape(-1, 1) @ w.reshape(1, -1)
+        wmeans = np.linalg.norm(vw, axis=1) / s
+        wstds = np.linalg.norm(v - vw, axis=1) / s
+        return wmeans, wstds
 
 
     def plot(self):
@@ -121,15 +169,18 @@ class MSDTransformer(TransformerMixin):
             data to be normalized
         """
         if self.expert_range is None:
+            self.lower_bounds = data.min()
             self.value_range = data.max()-data.min()
             data = (data-data.min())/(data.max()-data.min())
         else:
             c = 0
             self.value_range = []
+            self.lower_bounds = []
             for col in data.columns:
                 data[col] = (data[col] - self.expert_range[c][0]) / \
                     (self.expert_range[c][1]-self.expert_range[c][0])
                 self.value_range.append(self.expert_range[c][1] - self.expert_range[c][0])
+                self.lower_bounds.append(self.expert_range[c][0])
                 c += 1
 
         for i in range(self.m):
@@ -229,13 +280,15 @@ class MSDTransformer(TransformerMixin):
         else:
             return['background-color: none']*len(x)
 
-class TOPSISAggregationFunction():
+class TOPSISAggregationFunction(ABC):
 
 
+
+    def __init__(self, msd_transformer):
+        self.msd_transformer = msd_transformer
+    @abstractmethod
     def TOPSISCalculation(self, w, wm, wsd):
-
-      print(1)
-
+        pass
 
     def improvement_mean(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, w):
 
@@ -335,6 +388,8 @@ class TOPSISAggregationFunction():
         print("This set of features to change is not sufficient to overcame that alternative")
 
 class ATOPSIS(TOPSISAggregationFunction):
+    def __init__(self, msd_transformer):
+        super().__init__(msd_transformer)
 
     def TOPSISCalculation(self, w, wm, wsd):
 
@@ -431,6 +486,8 @@ class ATOPSIS(TOPSISAggregationFunction):
          print("You should change standard deviation by ", alternative_to_improve["Std"] - std_start)
 
 class ITOPSIS(TOPSISAggregationFunction):
+    def __init__(self, msd_transformer):
+        super().__init__(msd_transformer)
 
     def TOPSISCalculation(self, w, wm, wsd):
 
@@ -519,6 +576,8 @@ class ITOPSIS(TOPSISAggregationFunction):
          print("You should change standard deviation by ", std_start - alternative_to_improve["Std"])
 
 class RTOPSIS(TOPSISAggregationFunction):
+    def __init__(self, msd_transformer):
+        super().__init__(msd_transformer)
 
     def TOPSISCalculation(self, w, wm, wsd):
 
