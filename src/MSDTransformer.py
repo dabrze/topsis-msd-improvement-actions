@@ -38,7 +38,15 @@ class MSDTransformer(TransformerMixin):
         self.m = self.data.shape[1]
         self.n = self.data.shape[0]
 
-        self.original_weights = (weights if weights is not None else np.ones(self.m))
+        self.original_weights = weights
+
+        if(type(weights) is list):
+           self.original_weights = weights
+        elif(type(weights) is dict):
+           self.original_weights = self.__dictToList(weights)
+        elif(type(weights) is None):
+           self.original_weights = np.ones(self.m)
+
         self.weights = self.original_weights.copy()
 
         self.objectives = objectives
@@ -48,7 +56,7 @@ class MSDTransformer(TransformerMixin):
         elif(type(objectives) is str):
             self.objectives = np.repeat(objectives, self.m)
         elif(type(objectives) is dict):
-            self.objectives = self.__dictToObjectivesList(objectives)
+            self.objectives = self.__dictToList(objectives)
         elif(objectives is None):
             self.objectives = np.repeat('max', self.m)
 
@@ -225,13 +233,13 @@ class MSDTransformer(TransformerMixin):
         arranged = data__.index.tolist()
         return arranged
 
-    def __dictToObjectivesList(self, objectives_dict):
-        objectives_list = []
+    def __dictToList(self, dictionary):
+        new_list = []
 
         for col_name in self.data.columns:
-            objectives_list.append(objectives_dict[col_name])
+            new_list.append(dictionary[col_name])
 
-        return objectives_list
+        return new_list
 
     def __printChanges(self, dataframe, keys):
         dataframe = dataframe.to_frame()
