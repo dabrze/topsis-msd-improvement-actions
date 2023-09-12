@@ -261,7 +261,7 @@ class TOPSISAggregationFunction():
         print("You should change mean by ", alternative_to_improve["Mean"] - m_start)
 
 
-    def improvement_features(self, w, alternative_to_improve, alternative_to_overcome, improvement_ratio, features_to_change, value_range, objectives):
+    def improvement_features(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, w, features_to_change, value_range, objectives):
 
       AggFn = alternative_to_improve["AggFn"]
       alternative_to_improve = alternative_to_improve.drop(labels = ["Mean", "Std", "AggFn"])
@@ -340,6 +340,72 @@ class ATOPSIS(TOPSISAggregationFunction):
 
       return np.sqrt(wm*wm + wsd*wsd)/w
 
+    def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, weights, feature_to_change, value_range, objectives,
+                                   alternative_to_improve_CS, lower_bounds, upper_bounds):
+        performances_CS = alternative_to_improve_CS.to_numpy().copy()
+        performances_US = alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).to_numpy().copy()
+        modified_criterion_idx = list(alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).index).index(feature_to_change)
+        target_agg_value = (alternative_to_overcome["AggFn"] + improvement_ratio) * np.linalg.norm(weights)
+        objective = objectives[modified_criterion_idx]
+
+        # Positive and negative ideal solution (utility space)
+        PIS = weights
+        NIS = np.zeros_like(performances_US)
+
+        v_ij = performances_US * weights
+
+        # print("Expected A", expected_A)
+        # print("Expected D-", expected_D_minus_i)
+        # print("Current  D-", np.sum((v_ij - topsis_model.NIS)**2)**(1/2))
+
+        j = modified_criterion_idx
+        criterion_range = value_range[j]
+
+        v_ij_excluding_j = np.delete(v_ij, j)
+        PIS_excluding_j = np.delete(PIS, j)
+        NIS_excluding_j = np.delete(NIS, j)
+
+        v_ij_excluding_j = np.delete(v_ij, j)
+        PIS_excluding_j = np.delete(PIS, j)
+        NIS_excluding_j = np.delete(NIS, j)
+
+        a = 1
+        b = -2 * NIS[j]
+        c = NIS[j] ** 2 + np.sum((v_ij_excluding_j - NIS_excluding_j) ** 2) - target_agg_value ** 2
+        discriminant = b ** 2 - 4 * a * c
+        if discriminant < 0:
+            print("Not possible to achieve target")
+            return None
+        solution_1 = (-b + np.sqrt(discriminant)) / (2 * a)
+        solution_2 = (-b - np.sqrt(discriminant)) / (2 * a)
+        solution_1 = ((solution_1 / weights[j]) * criterion_range) + lower_bounds[j] - performances_CS[j]
+        solution_2 = ((solution_2 / weights[j]) * criterion_range) + lower_bounds[j] - performances_CS[j]
+        print("Solutions:", solution_1, solution_2)
+
+        if objective == "max":
+            print("Criterion", feature_to_change, "is gain type, we need to increase value")
+        else:
+            solution_1 *= -1
+            solution_2 *= -1
+            print("Criterion", feature_to_change, "is cost type, we need to decrease value")
+
+        # Choosing appropriate solution
+        solution_1_is_feasible = upper_bounds[j] > performances_CS[j] + solution_1 > lower_bounds[j]
+        solution_2_is_feasible = upper_bounds[j] > performances_CS[j] + solution_2 > lower_bounds[j]
+        if solution_1_is_feasible:
+            if solution_2_is_feasible:
+                print("Both solutions feasible")
+                print(feature_to_change, "needs to be improved by", solution_1, solution_2)
+            else:
+                print("Only solution_1 is feasible")
+                print(feature_to_change, "needs to be improved by", solution_1)
+        else:
+            if solution_2_is_feasible:
+                print("Only solution_2 is feasible")
+                print(feature_to_change, "needs to be improved by", solution_2)
+            else:
+                print("Neither solution is feasible")
+                print("It is impossible to improve changing only", feature_to_change)
 
     def improvement_std(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, w):
 
@@ -370,6 +436,64 @@ class ITOPSIS(TOPSISAggregationFunction):
 
       return np.sqrt(wm*wm + wsd*wsd)/(np.sqrt(wm*wm + wsd*wsd) + np.sqrt((w-wm) * (w-wm) + wsd*wsd))
 
+    def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, weights, feature_to_change, value_range, objectives,
+                                   alternative_to_improve_CS, lower_bounds, upper_bounds):
+        performances_CS = alternative_to_improve_CS.to_numpy().copy()
+        performances_US = alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).to_numpy().copy()
+        modified_criterion_idx = list(alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).index).index(feature_to_change)
+        target_agg_value = (1 - (alternative_to_overcome["AggFn"] + improvement_ratio)) * np.linalg.norm(weights)
+        objective = objectives[modified_criterion_idx]
+
+        # Positive and negative ideal solution (utility space)
+        PIS = weights
+        NIS = np.zeros_like(performances_US)
+
+        v_ij = performances_US * weights
+
+        j = modified_criterion_idx
+        criterion_range = value_range[j]
+
+        v_ij_excluding_j = np.delete(v_ij, j)
+        PIS_excluding_j = np.delete(PIS, j)
+        NIS_excluding_j = np.delete(NIS, j)
+
+        a = 1
+        b = -2 * PIS[j]
+        c = PIS[j] ** 2 + np.sum((v_ij_excluding_j - PIS_excluding_j) ** 2) - target_agg_value ** 2
+        discriminant = b ** 2 - 4 * a * c
+        if discriminant < 0:
+            print("Not possible to achieve target")
+            return None
+        solution_1 = (-b + np.sqrt(discriminant)) / (2 * a)
+        solution_2 = (-b - np.sqrt(discriminant)) / (2 * a)
+        solution_1 = ((solution_1 / weights[j]) * criterion_range) + lower_bounds[j] - performances_CS[j]
+        solution_2 = ((solution_2 / weights[j]) * criterion_range) + lower_bounds[j] - performances_CS[j]
+        print("Solutions:", solution_1, solution_2)
+
+        if objective == "max":
+            print("Criterion", feature_to_change, "is gain type, we need to increase value")
+        else:
+            solution_1 *= -1
+            solution_2 *= -1
+            print("Criterion", feature_to_change, "is cost type, we need to decrease value")
+
+            # Choosing appropriate solution
+        solution_1_is_feasible = upper_bounds[j] > performances_CS[j] + solution_1 > lower_bounds[j]
+        solution_2_is_feasible = upper_bounds[j] > performances_CS[j] + solution_2 > lower_bounds[j]
+        if solution_1_is_feasible:
+            if solution_2_is_feasible:
+                print("Both solutions feasible")
+                print(feature_to_change, "needs to be improved by", solution_1, solution_2)
+            else:
+                print("Only solution_1 is feasible")
+                print(feature_to_change, "needs to be improved by", solution_1)
+        else:
+            if solution_2_is_feasible:
+                print("Only solution_2 is feasible")
+                print(feature_to_change, "needs to be improved by", solution_2)
+            else:
+                print("Neither solution is feasible")
+                print("It is impossible to improve changing only", feature_to_change)
 
     def improvement_std(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, w):
 
@@ -399,6 +523,68 @@ class RTOPSIS(TOPSISAggregationFunction):
     def TOPSISCalculation(self, w, wm, wsd):
 
       return np.sqrt(wm*wm + wsd*wsd)/(np.sqrt(wm*wm + wsd*wsd) + np.sqrt((w-wm) * (w-wm) + wsd*wsd))
+
+    def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, weights, feature_to_change, value_range, objectives,
+                                   alternative_to_improve_CS, lower_bounds, upper_bounds):
+        performances_CS = alternative_to_improve_CS.to_numpy().copy()
+        performances_US = alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).to_numpy().copy()
+        modified_criterion_idx = list(alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).index).index(feature_to_change)
+        target_agg_value = alternative_to_overcome["AggFn"] + improvement_ratio
+        objective = objectives[modified_criterion_idx]
+
+        # Positive and negative ideal solution (utility space)
+        PIS = weights
+        NIS = np.zeros_like(performances_US)
+
+        v_ij = performances_US * weights
+
+        k = (target_agg_value / (1 - target_agg_value)) ** 2
+        j = modified_criterion_idx
+        criterion_range = value_range[j]
+
+        a = (1 - k) * (weights[j] / criterion_range) ** 2
+        b = 2 * (weights[j] / criterion_range) * (v_ij[j] - NIS[j] - k * (v_ij[j] - PIS[j]))
+        c = (v_ij[j] - NIS[j]) ** 2 - k * (v_ij[j] - PIS[j]) ** 2
+
+        # Calculate the sum of squared distances for the remaining (unmodified) criteria
+        v_ij_excluding_j = np.delete(v_ij, j)
+        PIS_excluding_j = np.delete(PIS, j)
+        NIS_excluding_j = np.delete(NIS, j)
+        p = k * np.sum((v_ij_excluding_j - PIS_excluding_j) ** 2) - np.sum((v_ij_excluding_j - NIS_excluding_j) ** 2)
+
+        discriminant = b ** 2 - 4 * a * (c - p)
+        # print("Delta:", discriminant)
+        if discriminant < 0:
+            print("Not possible to achieve target")
+            return None
+        solution_1 = (-b + np.sqrt(discriminant)) / (2 * a)
+        solution_2 = (-b - np.sqrt(discriminant)) / (2 * a)
+        print("Solutions:", solution_1, solution_2)
+
+        if objective == "max":
+            print("Criterion", feature_to_change, "is gain type, we need to increase value")
+        else:
+            solution_1 *= -1
+            solution_2 *= -1
+            print("Criterion", feature_to_change, "is cost type, we need to decrease value")
+
+        # Choosing appropriate solution
+        solution_1_is_feasible = upper_bounds[j] > performances_CS[j] + solution_1 > lower_bounds[j]
+        solution_2_is_feasible = upper_bounds[j] > performances_CS[j] + solution_2 > lower_bounds[j]
+        if solution_1_is_feasible:
+            if solution_2_is_feasible:
+                print("Both solutions feasible")
+                print(feature_to_change, "needs to be improved by", solution_1, solution_2)
+            else:
+                print("Only solution_1 is feasible")
+                print(feature_to_change, "needs to be improved by", solution_1)
+        else:
+            if solution_2_is_feasible:
+                print("Only solution_2 is feasible")
+                print(feature_to_change, "needs to be improved by", solution_2)
+            else:
+                print("Neither solution is feasible")
+                print("It is impossible to improve changing only", feature_to_change)
 
 
     def improvement_std(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, w):
