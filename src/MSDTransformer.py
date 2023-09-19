@@ -53,7 +53,7 @@ class MSDTransformer(TransformerMixin):
     def changeAggregationFunction(self, agg_fn):
         self.agg_fn = self.__check_agg_fn(agg_fn)
 
-    def transform(self):
+    def transform(self, Foo):
 
         if(not self.isFitted):
             raise Exception("fit is required before transform")
@@ -143,7 +143,9 @@ class MSDTransformer(TransformerMixin):
             if isinstance(expert_range[0], list):
                 return expert_range
             else:
-                return np.repeat(expert_range, self.m)
+                expert_range = [expert_range]
+                numpy_expert_range = np.repeat(expert_range, self.m, axis = 0)
+                return numpy_expert_range.tolist()
         elif isinstance(expert_range, dict):
            return self.__dictToList(expert_range)
         elif expert_range is None:
