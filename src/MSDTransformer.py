@@ -12,23 +12,8 @@ from IPython.display import display
 class MSDTransformer(TransformerMixin):
 
     def __init__(self, agg_fn):
-        self.agg_fn = self.check_agg_fn(agg_fn)
+        self.agg_fn = self.__check_agg_fn(agg_fn)
         self.isFitted = False
-
-    def check_agg_fn(self, agg_fn):
-        if isinstance(agg_fn, str):
-            if agg_fn == "A":
-                return ATOPSIS(self)
-            elif agg_fn == "I":
-                return ITOPSIS(self)
-            elif agg_fn == "R":
-                return RTOPSIS(self)
-            else:
-                raise ValueError("Invalid value at 'agg_fn': must be string (A, I, or R) or class implementing TOPSISAggregationFunction.")
-        elif issubclass(agg_fn, TOPSISAggregationFunction):
-            return agg_fn(self)
-        else:
-            raise ValueError("Invalid value at 'agg_fn': must be string (A, I, or R) or class implementing TOPSISAggregationFunction.")
 
         
     def fit(self, data, weights=None, objectives=None, expert_range=None):
@@ -67,7 +52,7 @@ class MSDTransformer(TransformerMixin):
         self.isFitted = True
 
     def changeAggregationFunction(self, agg_fn):
-        self.agg_fn = self.check_agg_fn(agg_fn)
+        self.agg_fn = self.__check_agg_fn(agg_fn)
 
     def transform(self):
 
@@ -117,6 +102,21 @@ class MSDTransformer(TransformerMixin):
 
       print("plot")
 
+    def __check_agg_fn(self, agg_fn):
+        if isinstance(agg_fn, str):
+            if agg_fn == "A":
+                return ATOPSIS(self)
+            elif agg_fn == "I":
+                return ITOPSIS(self)
+            elif agg_fn == "R":
+                return RTOPSIS(self)
+            else:
+                raise ValueError("Invalid value at 'agg_fn': must be string (A, I, or R) or class implementing TOPSISAggregationFunction.")
+        elif issubclass(agg_fn, TOPSISAggregationFunction):
+            return agg_fn(self)
+        else:
+            raise ValueError("Invalid value at 'agg_fn': must be string (A, I, or R) or class implementing TOPSISAggregationFunction.")
+        
     def __check_weights(self, weights):
         if isinstance(weights, list):
            return weights
