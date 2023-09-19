@@ -437,10 +437,9 @@ class TOPSISAggregationFunction(ABC):
               alternative_to_improve[j] = value_range[j] * alternative_to_improve[j]
             else:
               alternative_to_improve[j] = -value_range[j] * alternative_to_improve[j]
-
+          
           #self.__printChanges(alternative_to_improve, features_to_change)
-
-          print(alternative_to_improve)
+          display(alternative_to_improve.to_frame(name = "Improvement rate"))
           break
 
           for i in range(len(features_to_change)):
