@@ -30,6 +30,7 @@ class MSDTransformer(TransformerMixin):
         else:
             raise ValueError("Invalid value at 'agg_fn': must be string (A, I, or R) or class implementing TOPSISAggregationFunction.")
 
+        
     def fit(self, data, weights=None, objectives=None, expert_range=None):
 
         self.original_data = data
@@ -38,27 +39,10 @@ class MSDTransformer(TransformerMixin):
         self.m = self.data.shape[1]
         self.n = self.data.shape[0]
 
-        self.original_weights = weights
-
-        if(type(weights) is list):
-           self.original_weights = weights
-        elif(type(weights) is dict):
-           self.original_weights = self.__dictToList(weights)
-        elif(type(weights) is None):
-           self.original_weights = np.ones(self.m)
-
+        self.original_weights = self.__check_weights(weights)
         self.weights = self.original_weights.copy()
 
-        self.objectives = objectives
-
-        if(type(objectives) is list):
-            self.objectives = objectives
-        elif(type(objectives) is str):
-            self.objectives = np.repeat(objectives, self.m)
-        elif(type(objectives) is dict):
-            self.objectives = self.__dictToList(objectives)
-        elif(objectives is None):
-            self.objectives = np.repeat('max', self.m)
+        self.objectives = self.__check_objectives(objectives)
 
         self.objectives = list(
             map(lambda x: x.replace('gain', 'max'), self.objectives))
@@ -82,10 +66,8 @@ class MSDTransformer(TransformerMixin):
 
         self.isFitted = True
 
-
     def changeAggregationFunction(self, agg_fn):
         self.agg_fn = self.check_agg_fn(agg_fn)
-
 
     def transform(self):
 
@@ -131,11 +113,31 @@ class MSDTransformer(TransformerMixin):
         wstds = np.linalg.norm(v - vw, axis=1) / s
         return wmeans, wstds
 
-
     def plot(self):
 
       print("plot")
 
+    def __check_weights(self, weights):
+        if isinstance(weights, list):
+           return weights
+        elif isinstance(weights, dict):
+           return self.__dictToList(weights)
+        elif weights is None:
+           return np.ones(self.m)
+        else:
+           raise ValueError("Invalid value at 'weights': must be list or dictionary")
+
+    def __check_objectives(self, objectives):
+        if isinstance(objectives, list):
+           return objectives
+        elif isinstance(objectives, str):
+           return np.repeat(objectives, self.m)
+        elif isinstance(objectives, dict):
+           return self.__dictToList(objectives)
+        elif objectives is None:
+           return np.repeat('max', self.m)
+        else:
+           raise ValueError("Invalid value at 'objectives': must be list or string (gain, g, cost, c, min or max) or dictionary")
 
     def __checkInput(self):
 
@@ -165,7 +167,6 @@ class MSDTransformer(TransformerMixin):
                         "Invalid value at 'expert_range'. Expected numerical value (int or float).")
                 if(col[0] > col[1]):
                     raise ValueError("Invalid value at 'expert_range'. Minimal value  is bigger then maximal value.")
-
 
 
     def __normalizeData(self, data):
