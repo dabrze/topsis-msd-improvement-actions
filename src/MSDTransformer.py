@@ -101,6 +101,41 @@ class MSDTransformer(TransformerMixin):
 
       print("plot")
 
+    def show_ranking(self, mode = None, first = 0, last = None):
+
+        if last is None:
+           last = len(self.data.index)
+
+        self.__check_show_ranking(first, last)
+
+        ranking = self.data
+        ranking = ranking.assign(Rank = None)
+        columns = ranking.columns.tolist()
+        columns = columns[-1:] + columns[:-1]
+        ranking = ranking[columns]
+
+        alternative_names = ranking.index.tolist()
+        for alternative in alternative_names:
+            ranking['Rank'][alternative] = self.ranked_alternatives.index(alternative) + 1
+
+        ranking = ranking.sort_values(by = ['Rank'])
+        #ranking = ranking.loc[max(first-1, 0):last]
+        ranking = ranking[max(first-1, 0):last]
+
+        if isinstance(mode, str):
+            if mode == 'minimal':
+                display(ranking['Rank'])
+            elif mode == 'standard':
+                display(ranking.drop(['Mean', 'Std', 'AggFn'], axis=1))
+            elif mode == 'full':
+                display(ranking)
+            else:
+               raise ValueError("Invalid value at 'mode': must be a string (minimal, standard, or full).")
+            return
+        
+        display(ranking.drop(['Mean', 'Std', 'AggFn'], axis=1))
+        return
+    
     def __check_agg_fn(self, agg_fn):
         if isinstance(agg_fn, str):
             if agg_fn == "A":
@@ -182,7 +217,23 @@ class MSDTransformer(TransformerMixin):
                 if(col[0] > col[1]):
                     raise ValueError("Invalid value at 'expert_range'. Minimal value  is bigger then maximal value.")
 
+    def __check_show_ranking(self, first, last):
 
+        if isinstance(first, int):
+           if first < 0 or first > len(self.data.index):
+              raise ValueError("Invalid value at 'first': must be in range [0:number_of_alternatives]")
+        else:
+           raise TypeError("Invalid type of 'first': must be an int")
+        
+        if isinstance(last, int):
+           if last < 0 or last > len(self.data.index):
+              raise ValueError("Invalid value at 'last': must be in range [0:number_of_alternatives]")
+        else:
+           raise TypeError("Invalid type of 'last': must be an int")
+        
+        if last < first:
+           raise ValueError("'first' must be not greater than 'last'")
+        
     def __normalizeData(self, data):
         """normalize given data using either given expert range or min/max
         uses the min-max normalization with minimum and maximum taken from expert ranges if given
@@ -212,7 +263,6 @@ class MSDTransformer(TransformerMixin):
 
         return data
 
-
     def __normalizeWeights(self, weights):
         """normalize weights
         result are weights not greater than 1 but not 0 if not present previously
@@ -223,7 +273,6 @@ class MSDTransformer(TransformerMixin):
         """
         weights = np.array([float(i)/max(weights) for i in weights])
         return weights
-
 
     def __wmstd(self):
 
@@ -239,7 +288,6 @@ class MSDTransformer(TransformerMixin):
 
       self.data['Mean'] = wm
       self.data['Std'] = wsd
-
 
     def __ranking(self):
         """creates a ranking from the data based on topsis value column"""
