@@ -14,8 +14,7 @@ class MSDTransformer(TransformerMixin):
     def __init__(self, agg_fn):
         self.agg_fn = self.__check_agg_fn(agg_fn)
         self.isFitted = False
-
-        
+             
     def fit(self, data, weights=None, objectives=None, expert_range=None):
 
         self.original_data = data
@@ -38,7 +37,7 @@ class MSDTransformer(TransformerMixin):
         self.objectives = list(
             map(lambda x: x.replace('c', 'min'), self.objectives))
 
-        self.expert_range = expert_range
+        self.expert_range = self.__check_expert_range(expert_range)
 
         self.topsis_val = []
         self.ranked_alternatives = []
@@ -116,7 +115,7 @@ class MSDTransformer(TransformerMixin):
             return agg_fn(self)
         else:
             raise ValueError("Invalid value at 'agg_fn': must be string (A, I, or R) or class implementing TOPSISAggregationFunction.")
-        
+  
     def __check_weights(self, weights):
         if isinstance(weights, list):
            return weights
@@ -125,7 +124,7 @@ class MSDTransformer(TransformerMixin):
         elif weights is None:
            return np.ones(self.m)
         else:
-           raise ValueError("Invalid value at 'weights': must be list or dictionary")
+           raise ValueError("Invalid value at 'weights': must be a list or a dictionary")
 
     def __check_objectives(self, objectives):
         if isinstance(objectives, list):
@@ -137,8 +136,21 @@ class MSDTransformer(TransformerMixin):
         elif objectives is None:
            return np.repeat('max', self.m)
         else:
-           raise ValueError("Invalid value at 'objectives': must be list or string (gain, g, cost, c, min or max) or dictionary")
+           raise ValueError("Invalid value at 'objectives': must be a list or a string (gain, g, cost, c, min or max) or a dictionary")
 
+    def __check_expert_range(self, expert_range):
+        if isinstance(expert_range, list):
+            if isinstance(expert_range[0], list):
+                return expert_range
+            else:
+                return np.repeat(expert_range, self.m)
+        elif isinstance(expert_range, dict):
+           return self.__dictToList(expert_range)
+        elif expert_range is None:
+           return
+        else:
+           raise ValueError("Invalid value at 'expert_range': must be a list (1D or 2D) or a dictionary")
+        
     def __checkInput(self):
 
         if (len(self.weights) != self.m):
