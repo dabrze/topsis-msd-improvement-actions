@@ -360,7 +360,7 @@ class TOPSISAggregationFunction(ABC):
     def TOPSISCalculation(self, w, wm, wsd):
         pass
 
-    def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, feature_to_change):
+    def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, feature_to_change, alternative_to_improve_CS):
         """ Universal binary search algorithm for achieving the target by modifying the performance on a single criterion. """
         performances_US = alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).to_numpy().copy()
         target_agg_value = alternative_to_overcome["AggFn"] + improvement_ratio
@@ -494,6 +494,37 @@ class TOPSISAggregationFunction(ABC):
       else:
         print("This set of features to change is not sufficient to overcame that alternative")
 
+    @staticmethod
+    def solve_quadratic_equation(a, b, c):
+        discriminant = b ** 2 - 4 * a * c
+        if discriminant < 0:
+            return None
+        solution_1 = (-b + np.sqrt(discriminant)) / (2 * a)
+        solution_2 = (-b - np.sqrt(discriminant)) / (2 * a)
+        return solution_1, solution_2
+
+    @staticmethod
+    def choose_appropriate_solution(solution_1, solution_2, lower_bound, upper_bound, objective):
+        solution_1_is_feasible = upper_bound > solution_1 > lower_bound
+        solution_2_is_feasible = upper_bound > solution_2 > lower_bound
+        if solution_1_is_feasible:
+            if solution_2_is_feasible:
+                # print("Both solutions feasible")
+                if objective == "max":
+                    return min(solution_1, solution_2)
+                else:
+                    return max(solution_1, solution_2)
+            else:
+                # print("Only solution_1 is feasible")
+                return solution_1
+        else:
+            if solution_2_is_feasible:
+                # print("Only solution_2 is feasible")
+                return solution_2
+            else:
+                # print("Neither solution is feasible")
+                return None
+
 class ATOPSIS(TOPSISAggregationFunction):
     def __init__(self, msd_transformer):
         super().__init__(msd_transformer)
@@ -502,72 +533,48 @@ class ATOPSIS(TOPSISAggregationFunction):
 
       return np.sqrt(wm*wm + wsd*wsd)/w
 
-    def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, weights, feature_to_change, value_range, objectives,
-                                   alternative_to_improve_CS, lower_bounds, upper_bounds):
+    def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, feature_to_change,
+                                   alternative_to_improve_CS):
+        """ Exact algorithm dedicated to the aggregation `A` for achieving the target by modifying the performance on a single criterion. """
         performances_CS = alternative_to_improve_CS.to_numpy().copy()
         performances_US = alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).to_numpy().copy()
-        modified_criterion_idx = list(alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).index).index(feature_to_change)
+        weights = self.msd_transformer.weights
         target_agg_value = (alternative_to_overcome["AggFn"] + improvement_ratio) * np.linalg.norm(weights)
-        objective = objectives[modified_criterion_idx]
 
-        # Positive and negative ideal solution (utility space)
-        PIS = weights
+        modified_criterion_idx = list(alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).index).index(feature_to_change)
+        criterion_range = self.msd_transformer.value_range[modified_criterion_idx]
+        lower_bound = self.msd_transformer.lower_bounds[modified_criterion_idx]
+        upper_bound = lower_bound + criterion_range
+        objective = self.msd_transformer.objectives[modified_criterion_idx]
+
+        # Negative Ideal Solution (utility space)
         NIS = np.zeros_like(performances_US)
 
         v_ij = performances_US * weights
-
-        # print("Expected A", expected_A)
-        # print("Expected D-", expected_D_minus_i)
-        # print("Current  D-", np.sum((v_ij - topsis_model.NIS)**2)**(1/2))
-
         j = modified_criterion_idx
-        criterion_range = value_range[j]
 
         v_ij_excluding_j = np.delete(v_ij, j)
-        PIS_excluding_j = np.delete(PIS, j)
-        NIS_excluding_j = np.delete(NIS, j)
-
-        v_ij_excluding_j = np.delete(v_ij, j)
-        PIS_excluding_j = np.delete(PIS, j)
         NIS_excluding_j = np.delete(NIS, j)
 
         a = 1
         b = -2 * NIS[j]
         c = NIS[j] ** 2 + np.sum((v_ij_excluding_j - NIS_excluding_j) ** 2) - target_agg_value ** 2
-        discriminant = b ** 2 - 4 * a * c
-        if discriminant < 0:
-            print("Not possible to achieve target")
+
+        solutions = TOPSISAggregationFunction.solve_quadratic_equation(a, b, c)  # solutions are new performances in VS, not modifications
+        if solutions is None:
+            # print("Not possible to achieve target")
             return None
-        solution_1 = (-b + np.sqrt(discriminant)) / (2 * a)
-        solution_2 = (-b - np.sqrt(discriminant)) / (2 * a)
-        solution_1 = ((solution_1 / weights[j]) * criterion_range) + lower_bounds[j] - performances_CS[j]
-        solution_2 = ((solution_2 / weights[j]) * criterion_range) + lower_bounds[j] - performances_CS[j]
-        print("Solutions:", solution_1, solution_2)
-
-        if objective == "max":
-            print("Criterion", feature_to_change, "is gain type, we need to increase value")
         else:
-            solution_1 *= -1
-            solution_2 *= -1
-            print("Criterion", feature_to_change, "is cost type, we need to decrease value")
+            # solution_1 and solution_2 -- new performances in CS
+            solution_1 = ((solutions[0] / weights[j]) * criterion_range) + lower_bound
+            solution_2 = ((solutions[1] / weights[j]) * criterion_range) + lower_bound
 
-        # Choosing appropriate solution
-        solution_1_is_feasible = upper_bounds[j] > performances_CS[j] + solution_1 > lower_bounds[j]
-        solution_2_is_feasible = upper_bounds[j] > performances_CS[j] + solution_2 > lower_bounds[j]
-        if solution_1_is_feasible:
-            if solution_2_is_feasible:
-                print("Both solutions feasible")
-                print(feature_to_change, "needs to be improved by", solution_1, solution_2)
+            # solution -- new performances in CS
+            solution = TOPSISAggregationFunction.choose_appropriate_solution(solution_1, solution_2, lower_bound, upper_bound, objective)
+            if solution is None:
+                return None
             else:
-                print("Only solution_1 is feasible")
-                print(feature_to_change, "needs to be improved by", solution_1)
-        else:
-            if solution_2_is_feasible:
-                print("Only solution_2 is feasible")
-                print(feature_to_change, "needs to be improved by", solution_2)
-            else:
-                print("Neither solution is feasible")
-                print("It is impossible to improve changing only", feature_to_change)
+                return solution - performances_CS[j]
 
     def improvement_std(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, w):
 
@@ -599,64 +606,48 @@ class ITOPSIS(TOPSISAggregationFunction):
     def TOPSISCalculation(self, w, wm, wsd):
         return 1 - np.sqrt((w - wm) * (w - wm) + wsd * wsd) / w
 
-    def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, weights, feature_to_change, value_range, objectives,
-                                   alternative_to_improve_CS, lower_bounds, upper_bounds):
+    def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, feature_to_change,
+                                   alternative_to_improve_CS):
+        """ Exact algorithm dedicated to the aggregation `I` for achieving the target by modifying the performance on a single criterion. """
         performances_CS = alternative_to_improve_CS.to_numpy().copy()
         performances_US = alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).to_numpy().copy()
-        modified_criterion_idx = list(alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).index).index(feature_to_change)
+        weights = self.msd_transformer.weights
         target_agg_value = (1 - (alternative_to_overcome["AggFn"] + improvement_ratio)) * np.linalg.norm(weights)
-        objective = objectives[modified_criterion_idx]
 
-        # Positive and negative ideal solution (utility space)
+        modified_criterion_idx = list(alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).index).index(feature_to_change)
+        criterion_range = self.msd_transformer.value_range[modified_criterion_idx]
+        lower_bound = self.msd_transformer.lower_bounds[modified_criterion_idx]
+        upper_bound = lower_bound + criterion_range
+        objective = self.msd_transformer.objectives[modified_criterion_idx]
+
+        # Positive Ideal Solution (utility space)
         PIS = weights
-        NIS = np.zeros_like(performances_US)
 
         v_ij = performances_US * weights
-
         j = modified_criterion_idx
-        criterion_range = value_range[j]
 
         v_ij_excluding_j = np.delete(v_ij, j)
         PIS_excluding_j = np.delete(PIS, j)
-        NIS_excluding_j = np.delete(NIS, j)
 
         a = 1
         b = -2 * PIS[j]
         c = PIS[j] ** 2 + np.sum((v_ij_excluding_j - PIS_excluding_j) ** 2) - target_agg_value ** 2
-        discriminant = b ** 2 - 4 * a * c
-        if discriminant < 0:
-            print("Not possible to achieve target")
+
+        solutions = TOPSISAggregationFunction.solve_quadratic_equation(a, b, c)  # solutions are new performances in VS, not modifications
+        if solutions is None:
+            # print("Not possible to achieve target")
             return None
-        solution_1 = (-b + np.sqrt(discriminant)) / (2 * a)
-        solution_2 = (-b - np.sqrt(discriminant)) / (2 * a)
-        solution_1 = ((solution_1 / weights[j]) * criterion_range) + lower_bounds[j] - performances_CS[j]
-        solution_2 = ((solution_2 / weights[j]) * criterion_range) + lower_bounds[j] - performances_CS[j]
-        print("Solutions:", solution_1, solution_2)
-
-        if objective == "max":
-            print("Criterion", feature_to_change, "is gain type, we need to increase value")
         else:
-            solution_1 *= -1
-            solution_2 *= -1
-            print("Criterion", feature_to_change, "is cost type, we need to decrease value")
+            # solution_1 and solution_2 -- new performances in CS
+            solution_1 = ((solutions[0] / weights[j]) * criterion_range) + lower_bound
+            solution_2 = ((solutions[1] / weights[j]) * criterion_range) + lower_bound
 
-            # Choosing appropriate solution
-        solution_1_is_feasible = upper_bounds[j] > performances_CS[j] + solution_1 > lower_bounds[j]
-        solution_2_is_feasible = upper_bounds[j] > performances_CS[j] + solution_2 > lower_bounds[j]
-        if solution_1_is_feasible:
-            if solution_2_is_feasible:
-                print("Both solutions feasible")
-                print(feature_to_change, "needs to be improved by", solution_1, solution_2)
+            # solution -- new performances in CS
+            solution = TOPSISAggregationFunction.choose_appropriate_solution(solution_1, solution_2, lower_bound, upper_bound, objective)
+            if solution is None:
+                return None
             else:
-                print("Only solution_1 is feasible")
-                print(feature_to_change, "needs to be improved by", solution_1)
-        else:
-            if solution_2_is_feasible:
-                print("Only solution_2 is feasible")
-                print(feature_to_change, "needs to be improved by", solution_2)
-            else:
-                print("Neither solution is feasible")
-                print("It is impossible to improve changing only", feature_to_change)
+                return solution - performances_CS[j]
 
     def improvement_std(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, w):
 
@@ -689,67 +680,53 @@ class RTOPSIS(TOPSISAggregationFunction):
 
       return np.sqrt(wm*wm + wsd*wsd)/(np.sqrt(wm*wm + wsd*wsd) + np.sqrt((w-wm) * (w-wm) + wsd*wsd))
 
-    def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, weights, feature_to_change, value_range, objectives,
-                                   alternative_to_improve_CS, lower_bounds, upper_bounds):
+    def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, feature_to_change,
+                                   alternative_to_improve_CS):
+        """ Exact algorithm dedicated to the aggregation `R` for achieving the target by modifying the performance on a single criterion. """
         performances_CS = alternative_to_improve_CS.to_numpy().copy()
         performances_US = alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).to_numpy().copy()
-        modified_criterion_idx = list(alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).index).index(feature_to_change)
+        weights = self.msd_transformer.weights
         target_agg_value = alternative_to_overcome["AggFn"] + improvement_ratio
-        objective = objectives[modified_criterion_idx]
 
-        # Positive and negative ideal solution (utility space)
+        modified_criterion_idx = list(alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).index).index(feature_to_change)
+        criterion_range = self.msd_transformer.value_range[modified_criterion_idx]
+        lower_bound = self.msd_transformer.lower_bounds[modified_criterion_idx]
+        upper_bound = lower_bound + criterion_range
+        objective = self.msd_transformer.objectives[modified_criterion_idx]
+
+        # Positive and Negative Ideal Solution (utility space)
         PIS = weights
         NIS = np.zeros_like(performances_US)
 
         v_ij = performances_US * weights
-
-        k = (target_agg_value / (1 - target_agg_value)) ** 2
         j = modified_criterion_idx
-        criterion_range = value_range[j]
-
-        a = (1 - k) * (weights[j] / criterion_range) ** 2
-        b = 2 * (weights[j] / criterion_range) * (v_ij[j] - NIS[j] - k * (v_ij[j] - PIS[j]))
-        c = (v_ij[j] - NIS[j]) ** 2 - k * (v_ij[j] - PIS[j]) ** 2
 
         # Calculate the sum of squared distances for the remaining (unmodified) criteria
         v_ij_excluding_j = np.delete(v_ij, j)
         PIS_excluding_j = np.delete(PIS, j)
         NIS_excluding_j = np.delete(NIS, j)
+        k = (target_agg_value / (1 - target_agg_value)) ** 2
         p = k * np.sum((v_ij_excluding_j - PIS_excluding_j) ** 2) - np.sum((v_ij_excluding_j - NIS_excluding_j) ** 2)
 
-        discriminant = b ** 2 - 4 * a * (c - p)
-        # print("Delta:", discriminant)
-        if discriminant < 0:
-            print("Not possible to achieve target")
+        a = (1 - k) * (weights[j] / criterion_range) ** 2
+        b = 2 * (weights[j] / criterion_range) * (v_ij[j] - NIS[j] - k * (v_ij[j] - PIS[j]))
+        c = (v_ij[j] - NIS[j]) ** 2 - k * (v_ij[j] - PIS[j]) ** 2 - p
+
+        solutions = TOPSISAggregationFunction.solve_quadratic_equation(a, b, c)  # solutions are performance modifications in CS !!!
+        if solutions is None:
+            # print("Not possible to achieve target")
             return None
-        solution_1 = (-b + np.sqrt(discriminant)) / (2 * a)
-        solution_2 = (-b - np.sqrt(discriminant)) / (2 * a)
-        print("Solutions:", solution_1, solution_2)
-
-        if objective == "max":
-            print("Criterion", feature_to_change, "is gain type, we need to increase value")
         else:
-            solution_1 *= -1
-            solution_2 *= -1
-            print("Criterion", feature_to_change, "is cost type, we need to decrease value")
+            # solution_1 and solution_2 -- new performances in CS
+            solution_1 = solutions[0] + performances_CS[j]
+            solution_2 = solutions[1] + performances_CS[j]
 
-        # Choosing appropriate solution
-        solution_1_is_feasible = upper_bounds[j] > performances_CS[j] + solution_1 > lower_bounds[j]
-        solution_2_is_feasible = upper_bounds[j] > performances_CS[j] + solution_2 > lower_bounds[j]
-        if solution_1_is_feasible:
-            if solution_2_is_feasible:
-                print("Both solutions feasible")
-                print(feature_to_change, "needs to be improved by", solution_1, solution_2)
-            else:
-                print("Only solution_1 is feasible")
-                print(feature_to_change, "needs to be improved by", solution_1)
+        # solution -- new performances in CS
+        solution = TOPSISAggregationFunction.choose_appropriate_solution(solution_1, solution_2, lower_bound, upper_bound, objective)
+        if solution is None:
+            return None
         else:
-            if solution_2_is_feasible:
-                print("Only solution_2 is feasible")
-                print(feature_to_change, "needs to be improved by", solution_2)
-            else:
-                print("Neither solution is feasible")
-                print("It is impossible to improve changing only", feature_to_change)
+            return solution - performances_CS[j]
 
 
     def improvement_std(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, w):
