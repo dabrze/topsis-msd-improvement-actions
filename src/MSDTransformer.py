@@ -560,8 +560,7 @@ class ITOPSIS(TOPSISAggregationFunction):
         super().__init__(msd_transformer)
 
     def TOPSISCalculation(self, w, wm, wsd):
-
-      return np.sqrt(wm*wm + wsd*wsd)/(np.sqrt(wm*wm + wsd*wsd) + np.sqrt((w-wm) * (w-wm) + wsd*wsd))
+        return 1 - np.sqrt((w - wm) * (w - wm) + wsd * wsd) / w
 
     def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, weights, feature_to_change, value_range, objectives,
                                    alternative_to_improve_CS, lower_bounds, upper_bounds):
