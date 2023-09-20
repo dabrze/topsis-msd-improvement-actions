@@ -351,15 +351,52 @@ class MSDTransformer(TransformerMixin):
         else:
             return['background-color: none']*len(x)
 
+
 class TOPSISAggregationFunction(ABC):
-
-
-
     def __init__(self, msd_transformer):
         self.msd_transformer = msd_transformer
+
     @abstractmethod
     def TOPSISCalculation(self, w, wm, wsd):
         pass
+
+    def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, feature_to_change):
+        """ Universal binary search algorithm for achieving the target by modifying the performance on a single criterion. """
+        performances_US = alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).to_numpy().copy()
+        target_agg_value = alternative_to_overcome["AggFn"] + improvement_ratio
+
+        modified_criterion_idx = list(alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).index).index(feature_to_change)
+        criterion_range = self.msd_transformer.value_range[modified_criterion_idx]
+
+        max_possible_improved = performances_US.copy()
+        max_possible_improved[modified_criterion_idx] = 1
+        max_possible_agg_value = self.msd_transformer.transform_new_data([max_possible_improved])[2].item()
+        if max_possible_agg_value < target_agg_value:
+            # print(f"Not possible to achieve target {target_agg_value}. Max possible agg value is {max_possible_agg_value}")
+            return None
+
+        low = 0
+        high = 1
+        while high - low > 1e-15:
+            mid = (high + low) / 2
+            improved = performances_US.copy()
+            improved[modified_criterion_idx] = mid
+            agg_value = self.msd_transformer.transform_new_data([improved])[2].item()
+
+            if agg_value < target_agg_value:
+                low = mid
+            elif agg_value > target_agg_value:
+                high = mid
+            else:
+                # print("while loop breaks: the exact value we were looking for has been found")
+                break
+        else:
+            # print("while loop terminates: high ≈ low")
+            pass
+
+        improvement_CS = (mid - performances_US[modified_criterion_idx]) * criterion_range
+        # print(feature_to_change, "needs to be improved by", improvement_CS)
+        return improvement_CS
 
     def improvement_mean(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, w):
 
