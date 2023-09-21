@@ -15,13 +15,11 @@ class MSDTransformer(TransformerMixin):
         self.agg_fn = self.__check_agg_fn(agg_fn)
         self.isFitted = False
              
-    def fit(self, data, weights=None, objectives=None, expert_range=None):
+    def fit(self, X, weights=None, objectives=None, expert_range=None):
 
-        self.original_data = data
-
-        self.data = self.original_data.copy()
-        self.m = self.data.shape[1]
-        self.n = self.data.shape[0]
+        self.X = X
+        self.m = X.shape[1]
+        self.n = X.shape[0]
 
         self.original_weights = self.__check_weights(weights)
         self.weights = self.original_weights.copy()
@@ -44,25 +42,30 @@ class MSDTransformer(TransformerMixin):
 
         self.__checkInput()
 
-        self.data = self.__normalizeData(self.data)
-
         self.weights = self.__normalizeWeights(self.weights)
 
         self.isFitted = True
 
+        return self
+
     def changeAggregationFunction(self, agg_fn):
         self.agg_fn = self.__check_agg_fn(agg_fn)
 
-    def transform(self, Foo):
+    def transform(self, X):
 
         if(not self.isFitted):
             raise Exception("fit is required before transform")
 
-        if(len(self.data.columns) == len(self.weights)):
+        X_new = X.copy()
+        self.X_new = self.__normalizeData(X_new)
+
+        if(len(self.X_new.columns) == len(self.weights)):
             self.__wmstd()
-            self.data['AggFn'] = self.agg_fn.TOPSISCalculation(np.mean(self.weights), self.data['Mean'], self.data['Std'])
+            self.X_new['AggFn'] = self.agg_fn.TOPSISCalculation(np.mean(self.weights), self.X_new['Mean'], self.X_new['Std'])
 
             self.ranked_alternatives = self.__ranking()
+            
+        return self.X_new
 
     def transform_new_data(self, X, normalize_data=False, print_ranks=False):
         if not self.isFitted:
@@ -81,7 +84,7 @@ class MSDTransformer(TransformerMixin):
         w_means, w_stds = self.transform_US_to_wmsd(X_US)
         agg_values = self.agg_fn.TOPSISCalculation(np.mean(self.weights), w_means, w_stds)
         if print_ranks:
-            ranking_func = np.vectorize(lambda agg_value: 1 + np.sum(self.data['AggFn'] > agg_value))
+            ranking_func = np.vectorize(lambda agg_value: 1 + np.sum(self.X_new['AggFn'] > agg_value))
             ranks = ranking_func(agg_values)
             print(agg_values, ranks)
         return w_means, w_stds, agg_values
@@ -104,11 +107,11 @@ class MSDTransformer(TransformerMixin):
     def show_ranking(self, mode = None, first = 0, last = None):
 
         if last is None:
-           last = len(self.data.index)
+           last = len(self.X_new.index)
 
         self.__check_show_ranking(first, last)
 
-        ranking = self.data
+        ranking = self.X_new
         ranking = ranking.assign(Rank = None)
         columns = ranking.columns.tolist()
         columns = columns[-1:] + columns[:-1]
@@ -220,13 +223,13 @@ class MSDTransformer(TransformerMixin):
     def __check_show_ranking(self, first, last):
 
         if isinstance(first, int):
-           if first < 0 or first > len(self.data.index):
+           if first < 0 or first > len(self.X_new.index):
               raise ValueError("Invalid value at 'first': must be in range [0:number_of_alternatives]")
         else:
            raise TypeError("Invalid type of 'first': must be an int")
         
         if isinstance(last, int):
-           if last < 0 or last > len(self.data.index):
+           if last < 0 or last > len(self.X_new.index):
               raise ValueError("Invalid value at 'last': must be in range [0:number_of_alternatives]")
         else:
            raise TypeError("Invalid type of 'last': must be an int")
@@ -280,18 +283,18 @@ class MSDTransformer(TransformerMixin):
       s = np.sqrt(sum(w*w))/np.mean(w)
       wm = []
       wsd = []
-      for index, row in self.data.iterrows():
+      for index, row in self.X_new.iterrows():
         v = row * w
         vw = (sum(v * w)/sum(w * w)) * w
         wm.append(np.sqrt(sum(vw*vw))/s)
         wsd.append(np.sqrt(sum((v-vw)*(v-vw)))/s)
 
-      self.data['Mean'] = wm
-      self.data['Std'] = wsd
+      self.X_new['Mean'] = wm
+      self.X_new['Std'] = wsd
 
     def __ranking(self):
         """creates a ranking from the data based on topsis value column"""
-        data__ = self.data.copy()
+        data__ = self.X_new.copy()
         data__ = data__.sort_values(by='AggFn', ascending=False)
         arranged = data__.index.tolist()
         return arranged
@@ -299,7 +302,7 @@ class MSDTransformer(TransformerMixin):
     def __dictToList(self, dictionary):
         new_list = []
 
-        for col_name in self.data.columns:
+        for col_name in self.X.columns:
             new_list.append(dictionary[col_name])
 
         return new_list
@@ -327,7 +330,7 @@ class MSDTransformer(TransformerMixin):
         s = np.sqrt(sum(w*w))/np.mean(w)
         wm = []
         wsd = []
-        for index, row in self.data.iterrows():
+        for index, row in self.X_new.iterrows():
           v = row * w
           vw = (sum(v * w)/sum(w * w)) * w
           wm.append(np.sqrt(sum(vw*vw))/s)
@@ -337,7 +340,7 @@ class MSDTransformer(TransformerMixin):
         temp_data['Std'] = wsd
 
 
-        temp_data['AggFn'] = self.agg(self.data['Mean'], self.data['Std'])
+        temp_data['AggFn'] = self.agg(self.X_new['Mean'], self.X_new['Std'])
 
         updated_data['AggFn'] = temp_data['AggFn']
         updated_data = updated_data.sort_values(by='AggFn', ascending=False)
@@ -771,4 +774,3 @@ class RTOPSIS(TOPSISAggregationFunction):
               change = change/2
               actual_aggfn = self.TOPSISCalculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
           print("You should change standard deviation by ", std_start - alternative_to_improve["Std"])
-
