@@ -18,10 +18,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           
-      - name: execute py script # run MSDTransformer.py
-        env:
-          SOME_SECRET: ${{ secrets.SOME_SECRET }}
-        run: python src/MSDTransformer.py
+      - name: install module
+        run: |
+          pip install .
+        working-directory: /src
         
       - name: run unit tests
         run: python -m pytest --import-mode=append tests/
