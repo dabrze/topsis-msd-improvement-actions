@@ -157,10 +157,13 @@ class MSDTransformer(TransformerMixin):
     def __check_weights(self, weights):
         if isinstance(weights, list):
            return weights
+        
         elif isinstance(weights, dict):
            return self.__dictToList(weights)
+        
         elif weights is None:
            return np.ones(self.m)
+        
         else:
            raise ValueError("Invalid value at 'weights': must be a list or a dictionary")
 
@@ -210,6 +213,9 @@ class MSDTransformer(TransformerMixin):
         
         if(not all(item >= 0 for item in self.weights)):
             raise ValueError("Invalid value 'weights'. Expected value must be non-negative.")
+        
+        if(not any(item > 0 for item in self.weights)):
+            raise ValueError("Invalid value 'weights'. At least one weight must be positive.")
 
         if (len(self.objectives) != self.m):
             raise ValueError("Invalid value 'objectives'.")
