@@ -198,6 +198,9 @@ class MSDTransformer(TransformerMixin):
 
         if(not all(type(item) in [int, float, np.float64] for item in self.weights)):
             raise ValueError("Invalid value 'weights'. Expected numerical value (int or float).")
+        
+        if(not all(item >= 0 for item in self.weights)):
+            raise ValueError("Invalid value 'weights'. Expected value must be non-negative.")
 
         if (len(self.objectives) != self.m):
             raise ValueError("Invalid value 'objectives'.")
@@ -224,13 +227,13 @@ class MSDTransformer(TransformerMixin):
 
         if isinstance(first, int):
            if first < 1 or first > len(self.X_new.index):
-              raise ValueError("Invalid value at 'first': must be in range [1;number_of_alternatives]")
+              raise ValueError(f"Invalid value at 'first': must be in range [1:{len(self.X_new.index)}]")
         else:
            raise TypeError("Invalid type of 'first': must be an int")
         
         if isinstance(last, int):
-           if last < 0 or last > len(self.X_new.index):
-              raise ValueError("Invalid value at 'last': must be in range [1:number_of_alternatives]")
+           if last < 1 or last > len(self.X_new.index):
+              raise ValueError(f"Invalid value at 'last': must be in range [1:{len(self.X_new.index)}]")
         else:
            raise TypeError("Invalid type of 'last': must be an int")
         
