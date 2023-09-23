@@ -104,7 +104,7 @@ class MSDTransformer(TransformerMixin):
 
       print("plot")
 
-    def show_ranking(self, mode = None, first = 0, last = None):
+    def show_ranking(self, mode = None, first = 1, last = None):
 
         if last is None:
            last = len(self.X_new.index)
@@ -123,7 +123,7 @@ class MSDTransformer(TransformerMixin):
 
         ranking = ranking.sort_values(by = ['Rank'])
         #ranking = ranking.loc[max(first-1, 0):last]
-        ranking = ranking[max(first-1, 0):last]
+        ranking = ranking[(first-1):last]
 
         if isinstance(mode, str):
             if mode == 'minimal':
@@ -223,14 +223,14 @@ class MSDTransformer(TransformerMixin):
     def __check_show_ranking(self, first, last):
 
         if isinstance(first, int):
-           if first < 0 or first > len(self.X_new.index):
-              raise ValueError("Invalid value at 'first': must be in range [0:number_of_alternatives]")
+           if first < 1 or first > len(self.X_new.index):
+              raise ValueError("Invalid value at 'first': must be in range [1;number_of_alternatives]")
         else:
            raise TypeError("Invalid type of 'first': must be an int")
         
         if isinstance(last, int):
            if last < 0 or last > len(self.X_new.index):
-              raise ValueError("Invalid value at 'last': must be in range [0:number_of_alternatives]")
+              raise ValueError("Invalid value at 'last': must be in range [1:number_of_alternatives]")
         else:
            raise TypeError("Invalid type of 'last': must be an int")
         
