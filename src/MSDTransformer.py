@@ -177,19 +177,28 @@ class MSDTransformer(TransformerMixin):
            raise ValueError("Invalid value at 'objectives': must be a list or a string (gain, g, cost, c, min or max) or a dictionary")
 
     def __check_expert_range(self, expert_range):
+        if isinstance(expert_range, dict):
+            expert_range = self.__dictToList(expert_range)
+
         if isinstance(expert_range, list):
-            if isinstance(expert_range[0], list):
+
+            if all(isinstance(e, list) for e in expert_range):
                 return expert_range
-            else:
+            
+            elif all(isinstance(e, (int, float, np.float64)) for e in expert_range):
                 expert_range = [expert_range]
                 numpy_expert_range = np.repeat(expert_range, self.m, axis = 0)
                 return numpy_expert_range.tolist()
-        elif isinstance(expert_range, dict):
-           return self.__dictToList(expert_range)
+            
+            else:
+               raise ValueError("Invalid value at 'expert_range': must be a homogenous list (1D or 2D) or a dictionary")
+
         elif expert_range is None:
+           print(3)
            return
+        
         else:
-           raise ValueError("Invalid value at 'expert_range': must be a list (1D or 2D) or a dictionary")
+           raise ValueError("Invalid value at 'expert_range': must be a homogenous list (1D or 2D) or a dictionary")
         
     def __checkInput(self):
 
