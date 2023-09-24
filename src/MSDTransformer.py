@@ -100,6 +100,22 @@ class MSDTransformer(TransformerMixin):
         wstds = np.linalg.norm(v - vw, axis=1) / s
         return wmeans, wstds
 
+    def improvement(self, function_name, alternative_to_improve, alternative_to_overcome, improvement_ratio, **kwargs):
+
+        if(type(alternative_to_improve) == int):
+          alternative_to_improve = self.X_new.loc[self.ranked_alternatives[alternative_to_improve]].copy()
+        elif(type(alternative_to_improve) == str):
+          alternative_to_improve = self.X_new.loc[alternative_to_improve].copy()
+
+        if(type(alternative_to_overcome) == int):
+          alternative_to_overcome = self.X_new.loc[self.ranked_alternatives[alternative_to_overcome]].copy()
+        elif(type(alternative_to_overcome) == str):
+          alternative_to_overcome = self.X_new.loc[alternative_to_overcome].copy()
+          
+
+        func = getattr(self.agg_fn, function_name)
+        func(alternative_to_improve, alternative_to_overcome, improvement_ratio, **kwargs)
+
     def plot(self):
 
       print("plot")
@@ -381,7 +397,7 @@ class TOPSISAggregationFunction(ABC):
     def TOPSISCalculation(self, w, wm, wsd):
         pass
 
-    def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, feature_to_change, alternative_to_improve_CS):
+    def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, feature_to_change, alternative_to_improve_CS, **kwargs):
         """ Universal binary search algorithm for achieving the target by modifying the performance on a single criterion. """
         performances_US = alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).to_numpy().copy()
         target_agg_value = alternative_to_overcome["AggFn"] + improvement_ratio
@@ -419,8 +435,9 @@ class TOPSISAggregationFunction(ABC):
         # print(feature_to_change, "needs to be improved by", improvement_CS)
         return improvement_CS
 
-    def improvement_mean(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, w):
+    def improvement_mean(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, **kwargs):
 
+      w = np.mean(self.msd_transformer.weights)
       m_start = alternative_to_improve["Mean"]
       m_boundary = w
       if self.TOPSISCalculation(w, m_boundary, alternative_to_improve["Std"]) < alternative_to_overcome["AggFn"]:
@@ -443,12 +460,15 @@ class TOPSISAggregationFunction(ABC):
         print("You should change mean by ", alternative_to_improve["Mean"] - m_start)
 
 
-    def improvement_features(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, w, features_to_change, value_range, objectives):
-
+    def improvement_features(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, features_to_change, **kwargs):
+      
       AggFn = alternative_to_improve["AggFn"]
       alternative_to_improve = alternative_to_improve.drop(labels = ["Mean", "Std", "AggFn"])
       improvement_start = alternative_to_improve.copy()
       feature_pointer = 0
+      w = self.msd_transformer.weights
+      value_range = self.msd_transformer.value_range
+      objectives = self.msd_transformer.objectives
 
       is_improvement_satisfactory = False
 
@@ -555,7 +575,7 @@ class ATOPSIS(TOPSISAggregationFunction):
       return np.sqrt(wm*wm + wsd*wsd)/w
 
     def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, feature_to_change,
-                                   alternative_to_improve_CS):
+                                   alternative_to_improve_CS, **kwargs):
         """ Exact algorithm dedicated to the aggregation `A` for achieving the target by modifying the performance on a single criterion. """
         performances_CS = alternative_to_improve_CS.to_numpy().copy()
         performances_US = alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).to_numpy().copy()
@@ -597,8 +617,9 @@ class ATOPSIS(TOPSISAggregationFunction):
             else:
                 return solution - performances_CS[j]
 
-    def improvement_std(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, w):
+    def improvement_std(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, **kwargs):
 
+      w = np.mean(self.msd_transformer.weights)
       std_start = alternative_to_improve["Std"]
       sd_boundary = w/2
       if self.TOPSISCalculation(w, alternative_to_improve["Mean"], sd_boundary) < alternative_to_overcome["AggFn"]:
@@ -628,7 +649,7 @@ class ITOPSIS(TOPSISAggregationFunction):
         return 1 - np.sqrt((w - wm) * (w - wm) + wsd * wsd) / w
 
     def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, feature_to_change,
-                                   alternative_to_improve_CS):
+                                   alternative_to_improve_CS, **kwargs):
         """ Exact algorithm dedicated to the aggregation `I` for achieving the target by modifying the performance on a single criterion. """
         performances_CS = alternative_to_improve_CS.to_numpy().copy()
         performances_US = alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).to_numpy().copy()
@@ -670,8 +691,9 @@ class ITOPSIS(TOPSISAggregationFunction):
             else:
                 return solution - performances_CS[j]
 
-    def improvement_std(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, w):
+    def improvement_std(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, **kwargs):
 
+      w = np.mean(self.msd_transformer.weights)
       std_start = alternative_to_improve["Std"]
       sd_boundary = w/2
       if self.TOPSISCalculation(w, alternative_to_improve["Mean"], 0) < alternative_to_overcome["AggFn"]:
@@ -702,7 +724,7 @@ class RTOPSIS(TOPSISAggregationFunction):
       return np.sqrt(wm*wm + wsd*wsd)/(np.sqrt(wm*wm + wsd*wsd) + np.sqrt((w-wm) * (w-wm) + wsd*wsd))
 
     def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, feature_to_change,
-                                   alternative_to_improve_CS):
+                                   alternative_to_improve_CS, , **kwargs):
         """ Exact algorithm dedicated to the aggregation `R` for achieving the target by modifying the performance on a single criterion. """
         performances_CS = alternative_to_improve_CS.to_numpy().copy()
         performances_US = alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).to_numpy().copy()
@@ -750,8 +772,9 @@ class RTOPSIS(TOPSISAggregationFunction):
             return solution - performances_CS[j]
 
 
-    def improvement_std(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, w):
+    def improvement_std(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, **kwargs):
 
+      w = np.mean(self.msd_transformer.weights)
       std_start = alternative_to_improve["Std"]
       sd_boundary = w/2
       if (alternative_to_improve["Mean"]<sd_boundary):
