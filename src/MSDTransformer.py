@@ -213,8 +213,11 @@ class MSDTransformer(TransformerMixin):
                raise ValueError("Invalid value at 'expert_range': must be a homogenous list (1D or 2D) or a dictionary")
 
         elif expert_range is None:
-           print(3)
-           return
+            lower_bounds = self.X.min()
+            upper_bounds = self.X.max()
+            expert_range = [lower_bounds, upper_bounds]
+            numpy_expert_range = np.array(expert_range).T
+            return numpy_expert_range.tolist()
         
         else:
            raise ValueError("Invalid value at 'expert_range': must be a homogenous list (1D or 2D) or a dictionary")
@@ -279,20 +282,15 @@ class MSDTransformer(TransformerMixin):
         data : dataframe
             data to be normalized
         """
-        if self.expert_range is None:
-            self.lower_bounds = data.min()
-            self.value_range = data.max()-data.min()
-            data = (data-data.min())/(data.max()-data.min())
-        else:
-            c = 0
-            self.value_range = []
-            self.lower_bounds = []
-            for col in data.columns:
-                data[col] = (data[col] - self.expert_range[c][0]) / \
-                    (self.expert_range[c][1]-self.expert_range[c][0])
-                self.value_range.append(self.expert_range[c][1] - self.expert_range[c][0])
-                self.lower_bounds.append(self.expert_range[c][0])
-                c += 1
+        c = 0
+        self.value_range = []
+        self.lower_bounds = []
+        for col in data.columns:
+            data[col] = (data[col] - self.expert_range[c][0]) / \
+                (self.expert_range[c][1]-self.expert_range[c][0])
+            self.value_range.append(self.expert_range[c][1] - self.expert_range[c][0])
+            self.lower_bounds.append(self.expert_range[c][0])
+            c += 1
 
         for i in range(self.m):
             if self.objectives[i] == 'min':
@@ -724,7 +722,7 @@ class RTOPSIS(TOPSISAggregationFunction):
       return np.sqrt(wm*wm + wsd*wsd)/(np.sqrt(wm*wm + wsd*wsd) + np.sqrt((w-wm) * (w-wm) + wsd*wsd))
 
     def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, feature_to_change,
-                                   alternative_to_improve_CS, , **kwargs):
+                                   alternative_to_improve_CS, **kwargs):
         """ Exact algorithm dedicated to the aggregation `R` for achieving the target by modifying the performance on a single criterion. """
         performances_CS = alternative_to_improve_CS.to_numpy().copy()
         performances_US = alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).to_numpy().copy()
