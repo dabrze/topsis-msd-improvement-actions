@@ -257,6 +257,22 @@ class MSDTransformer(TransformerMixin):
             if(col[0] > col[1]):
                 raise ValueError("Invalid value at 'expert_range'. Minimal value  is bigger then maximal value.")
 
+        lower_bound = np.array(self.X.min()).tolist()
+        upper_bound = np.array(self.X.max()).tolist()
+
+        for id, val in enumerate(self.expert_range):
+           mini = lower_bound[id]
+           maxi = upper_bound[id]
+           if not (val[0]<=mini and val[1]>=maxi):
+               raise ValueError("Invalid value at 'expert_range'. All values from original data must be in a range of expert_range.")
+
+        '''
+        #TODO Dlaczego to nie działa? :<
+        for val, mini, maxi in self.expert_range, lower_bound, upper_bound:
+            if not (val[0]<mini and val[1]>maxi):
+               raise ValueError("Invalid value at 'expert_range'. All values from original data must be in a range of expert_range.")
+        ''' 
+
     def __check_show_ranking(self, first, last):
 
         if isinstance(first, int):
