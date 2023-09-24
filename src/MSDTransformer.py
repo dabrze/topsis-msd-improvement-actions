@@ -243,19 +243,19 @@ class MSDTransformer(TransformerMixin):
             raise ValueError(
                 "Invalid value at 'objectives'. Use 'min', 'max', 'gain', 'cost', 'g' or 'c'.")
 
-        if(self.expert_range != None):
-            if(len(self.expert_range) != len(self.objectives)):
+        if(len(self.expert_range) != len(self.objectives)):
+            raise ValueError(
+                "Invalid value at 'expert_range'. Length of should be equal to number of criteria.")
+        
+        for col in self.expert_range:
+            if(len(col) != 2):
                 raise ValueError(
-                    "Invalid value at 'expert_range'. Length of should be equal to number of criteria.")
-            for col in self.expert_range:
-                if(len(col) != 2):
-                    raise ValueError(
-                        "Invalid value at 'expert_range'. Every criterion has to have minimal and maximal value.")
-                if(not all(type(item) in [int, float] for item in col)):
-                    raise ValueError(
-                        "Invalid value at 'expert_range'. Expected numerical value (int or float).")
-                if(col[0] > col[1]):
-                    raise ValueError("Invalid value at 'expert_range'. Minimal value  is bigger then maximal value.")
+                    "Invalid value at 'expert_range'. Every criterion has to have minimal and maximal value.")
+            if(not all(type(item) in [int, float] for item in col)):
+                raise ValueError(
+                    "Invalid value at 'expert_range'. Expected numerical value (int or float).")
+            if(col[0] > col[1]):
+                raise ValueError("Invalid value at 'expert_range'. Minimal value  is bigger then maximal value.")
 
     def __check_show_ranking(self, first, last):
 
