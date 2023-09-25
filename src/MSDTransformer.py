@@ -9,6 +9,11 @@ import plotly.graph_objects as go
 import itertools
 from IPython.display import display
 from scipy.spatial import Delaunay
+from pymoo.core.problem import Problem
+from pymoo.algorithms.moo.nsga2 import NSGA2
+from pymoo.operators.crossover.sbx import SBX
+from pymoo.operators.mutation.pm import PM
+from pymoo.optimize import minimize
 
 class MSDTransformer(TransformerMixin):
 
@@ -115,7 +120,7 @@ class MSDTransformer(TransformerMixin):
           
 
         func = getattr(self.agg_fn, function_name)
-        func(alternative_to_improve, alternative_to_overcome, improvement_ratio, **kwargs)
+        return func(alternative_to_improve, alternative_to_overcome, improvement_ratio, **kwargs)
 
     def plot(self):
         """ Plots positions of alternatives in MSD space.
@@ -210,7 +215,7 @@ class MSDTransformer(TransformerMixin):
         temp_DataFrame1 = pd.DataFrame(list(itertools.product(
             tempset, repeat=int((self.m)))), columns=self.X.columns.values)
 
-        wm, wsd = self.__calculate_wmeans_and_wstds_numpy(temp_DataFrame1.to_numpy())
+        wm, wsd = self.transform_US_to_wmsd(temp_DataFrame1.to_numpy())
 
         temp_DataFrame1['Mean'] = wm
         temp_DataFrame1['Std'] = wsd
@@ -655,10 +660,10 @@ class TOPSISAggregationFunction(ABC):
     def TOPSISCalculation(self, w, wm, wsd):
         pass
 
-    def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, feature_to_change, alternative_to_improve_CS, **kwargs):
+    def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, feature_to_change, **kwargs):
         """ Universal binary search algorithm for achieving the target by modifying the performance on a single criterion. """
         performances_US = alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).to_numpy().copy()
-        target_agg_value = alternative_to_overcome["AggFn"] + improvement_ratio
+        target_agg_value = alternative_to_overcome["AggFn"]
 
         modified_criterion_idx = list(alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).index).index(feature_to_change)
         criterion_range = self.msd_transformer.value_range[modified_criterion_idx]
@@ -689,9 +694,11 @@ class TOPSISAggregationFunction(ABC):
             # print("while loop terminates: high ≈ low")
             pass
 
-        improvement_CS = (mid - performances_US[modified_criterion_idx]) * criterion_range
-        # print(feature_to_change, "needs to be improved by", improvement_CS)
-        return improvement_CS
+        feature_modification = (mid - performances_US[modified_criterion_idx]) * criterion_range
+        modification_vector = np.zeros_like(performances_US)
+        modification_vector[modified_criterion_idx] = feature_modification
+        result_df = pd.DataFrame([modification_vector], columns=self.msd_transformer.X.columns)
+        return result_df
 
     def improvement_mean(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, **kwargs):
 
@@ -793,6 +800,37 @@ class TOPSISAggregationFunction(ABC):
       else:
         print("This set of features to change is not sufficient to overcame that alternative")
 
+    def improvement_genetic(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, features_to_change, popsize=100, n_generations=100):
+        current_performances_US = alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).to_numpy().copy()
+        modified_criteria_subset = [x in features_to_change for x in self.msd_transformer.X.columns.tolist()]
+
+        # TODO check if the goal is achievable with a subset of criteria before running genetic algorithm
+
+        problem = PostFactumTopsisPymoo(
+            topsis_model=self.msd_transformer,
+            modified_criteria_subset=modified_criteria_subset,
+            current_performances=current_performances_US,
+            target_agg_value=alternative_to_overcome["AggFn"])
+
+        # TODO make other NSGA2 parameters adjustable by user
+        algorithm = NSGA2(pop_size=popsize,
+                          crossover=SBX(eta=15, prob=0.9),
+                          mutation=PM(eta=20),
+                          save_history=False)
+
+        res = minimize(problem, algorithm,
+                       termination=('n_gen', n_generations),
+                       seed=42, verbose=False)
+
+        if res.F is not None:
+            improvement_actions = np.zeros(shape=(len(res.F), len(current_performances_US)))
+            improvement_actions[:, modified_criteria_subset] = res.F - current_performances_US[modified_criteria_subset]
+            improvement_actions *= np.array(self.msd_transformer.value_range)
+            improvement_actions[:, np.array(self.msd_transformer.objectives) == "min"] *= -1
+            return pd.DataFrame(sorted(improvement_actions.tolist(), key=lambda x: x[0]), columns=self.msd_transformer.X.columns)
+        else:
+            return None
+
     @staticmethod
     def solve_quadratic_equation(a, b, c):
         discriminant = b ** 2 - 4 * a * c
@@ -824,6 +862,36 @@ class TOPSISAggregationFunction(ABC):
                 # print("Neither solution is feasible")
                 return None
 
+
+class PostFactumTopsisPymoo(Problem):
+    def __init__(self, topsis_model, modified_criteria_subset, current_performances, target_agg_value):
+        n_criteria = np.array(modified_criteria_subset).astype(bool).sum()
+        super().__init__(n_var=n_criteria, n_obj=n_criteria, n_ieq_constr=1, vtype=float)
+
+        self.topsis_model = topsis_model
+        self.mean_of_weights = np.mean(self.topsis_model.weights)
+        self.modified_criteria_subset = np.array(modified_criteria_subset).astype(bool)
+        self.current_performances = current_performances.copy()
+        self.target_agg_value = target_agg_value
+
+        # Lower and upper bounds in Utility Space
+        self.xl = np.zeros(n_criteria)
+        self.xu = np.ones(n_criteria)
+        # TODO lower and upper bounds passed as arguments by user
+
+    def _evaluate(self, x, out, *args, **kwargs):
+        # In Utility Space variables and objectives are the same values
+        out["F"] = x.copy()  # this copy might be redundant
+
+        # Topsis target constraint
+        modified_performances = np.repeat([self.current_performances], repeats=len(x), axis=0)
+        modified_performances[:, self.modified_criteria_subset] = x.copy()  # this copy might be redundant
+        w_means, w_stds = self.topsis_model.transform_US_to_wmsd(modified_performances)
+        agg_values = self.topsis_model.agg_fn.TOPSISCalculation(self.mean_of_weights, w_means, w_stds)
+        g1 = self.target_agg_value - agg_values  # In Pymoo positive values indicate constraint violation
+        out["G"] = np.array([g1])
+
+
 class ATOPSIS(TOPSISAggregationFunction):
     def __init__(self, msd_transformer):
         super().__init__(msd_transformer)
@@ -832,13 +900,12 @@ class ATOPSIS(TOPSISAggregationFunction):
 
       return np.sqrt(wm*wm + wsd*wsd)/w
 
-    def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, feature_to_change,
-                                   alternative_to_improve_CS, **kwargs):
+    def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, feature_to_change, **kwargs):
         """ Exact algorithm dedicated to the aggregation `A` for achieving the target by modifying the performance on a single criterion. """
-        performances_CS = alternative_to_improve_CS.to_numpy().copy()
         performances_US = alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).to_numpy().copy()
+        performances_CS = performances_US * self.msd_transformer.value_range + self.msd_transformer.lower_bounds
         weights = self.msd_transformer.weights
-        target_agg_value = (alternative_to_overcome["AggFn"] + improvement_ratio) * np.linalg.norm(weights)
+        target_agg_value = alternative_to_overcome["AggFn"] * np.linalg.norm(weights)
 
         modified_criterion_idx = list(alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).index).index(feature_to_change)
         criterion_range = self.msd_transformer.value_range[modified_criterion_idx]
@@ -873,7 +940,11 @@ class ATOPSIS(TOPSISAggregationFunction):
             if solution is None:
                 return None
             else:
-                return solution - performances_CS[j]
+                feature_modification = solution - performances_CS[j]
+                modification_vector = np.zeros_like(performances_US)
+                modification_vector[modified_criterion_idx] = feature_modification
+                result_df = pd.DataFrame([modification_vector], columns=self.msd_transformer.X.columns)
+                return result_df
 
     def improvement_std(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, **kwargs):
 
@@ -906,13 +977,12 @@ class ITOPSIS(TOPSISAggregationFunction):
     def TOPSISCalculation(self, w, wm, wsd):
         return 1 - np.sqrt((w - wm) * (w - wm) + wsd * wsd) / w
 
-    def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, feature_to_change,
-                                   alternative_to_improve_CS, **kwargs):
+    def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, feature_to_change, **kwargs):
         """ Exact algorithm dedicated to the aggregation `I` for achieving the target by modifying the performance on a single criterion. """
-        performances_CS = alternative_to_improve_CS.to_numpy().copy()
         performances_US = alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).to_numpy().copy()
+        performances_CS = performances_US * self.msd_transformer.value_range + self.msd_transformer.lower_bounds
         weights = self.msd_transformer.weights
-        target_agg_value = (1 - (alternative_to_overcome["AggFn"] + improvement_ratio)) * np.linalg.norm(weights)
+        target_agg_value = (1 - alternative_to_overcome["AggFn"]) * np.linalg.norm(weights)
 
         modified_criterion_idx = list(alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).index).index(feature_to_change)
         criterion_range = self.msd_transformer.value_range[modified_criterion_idx]
@@ -947,7 +1017,11 @@ class ITOPSIS(TOPSISAggregationFunction):
             if solution is None:
                 return None
             else:
-                return solution - performances_CS[j]
+                feature_modification = solution - performances_CS[j]
+                modification_vector = np.zeros_like(performances_US)
+                modification_vector[modified_criterion_idx] = feature_modification
+                result_df = pd.DataFrame([modification_vector], columns=self.msd_transformer.X.columns)
+                return result_df
 
     def improvement_std(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, **kwargs):
 
@@ -981,13 +1055,12 @@ class RTOPSIS(TOPSISAggregationFunction):
 
       return np.sqrt(wm*wm + wsd*wsd)/(np.sqrt(wm*wm + wsd*wsd) + np.sqrt((w-wm) * (w-wm) + wsd*wsd))
 
-    def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, feature_to_change,
-                                   alternative_to_improve_CS, **kwargs):
+    def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, feature_to_change, **kwargs):
         """ Exact algorithm dedicated to the aggregation `R` for achieving the target by modifying the performance on a single criterion. """
-        performances_CS = alternative_to_improve_CS.to_numpy().copy()
         performances_US = alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).to_numpy().copy()
+        performances_CS = performances_US * self.msd_transformer.value_range + self.msd_transformer.lower_bounds
         weights = self.msd_transformer.weights
-        target_agg_value = alternative_to_overcome["AggFn"] + improvement_ratio
+        target_agg_value = alternative_to_overcome["AggFn"]
 
         modified_criterion_idx = list(alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).index).index(feature_to_change)
         criterion_range = self.msd_transformer.value_range[modified_criterion_idx]
@@ -1027,7 +1100,11 @@ class RTOPSIS(TOPSISAggregationFunction):
         if solution is None:
             return None
         else:
-            return solution - performances_CS[j]
+            feature_modification = solution - performances_CS[j]
+            modification_vector = np.zeros_like(performances_US)
+            modification_vector[modified_criterion_idx] = feature_modification
+            result_df = pd.DataFrame([modification_vector], columns=self.msd_transformer.X.columns)
+            return result_df
 
     def improvement_std(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, **kwargs):
 
