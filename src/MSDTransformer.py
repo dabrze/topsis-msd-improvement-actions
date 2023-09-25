@@ -24,8 +24,10 @@ class MSDTransformer(TransformerMixin):
     def fit(self, X, weights=None, objectives=None, expert_range=None):
 
         self.X = X
-        self.m = X.shape[1]
-        self.n = X.shape[0]
+        self.n_alternatives = X.shape[0]
+        self.n_criteria = X.shape[1]
+        self.n = self.n_alternatives
+        self.m = self.n_criteria
 
         self.original_weights = self.__check_weights(weights)
         self.weights = self.original_weights.copy()
@@ -48,30 +50,47 @@ class MSDTransformer(TransformerMixin):
 
         self.__checkInput()
 
+        self.value_range = []
+        self.lower_bounds = []
+        for c in range(self.n_criteria):
+            self.lower_bounds.append(self.expert_range[c][0])
+            self.value_range.append(self.expert_range[c][1] - self.expert_range[c][0])
+
         self.weights = self.__normalizeWeights(self.weights)
 
         self.isFitted = True
 
         return self
 
+    def fit_transform(self, X, weights=None, objectives=None, expert_range=None):
+        self.fit(X, weights, objectives, expert_range)
+        self.X_new = self.__normalizeData(X.copy())
+        self.__wmstd()
+        self.X_new['AggFn'] = self.agg_fn.TOPSISCalculation(np.mean(self.weights), self.X_new['Mean'], self.X_new['Std'])
+        self.ranked_alternatives = self.__ranking()
+        return self.X_new
+
+
     def changeAggregationFunction(self, agg_fn):
         self.agg_fn = self.__check_agg_fn(agg_fn)
+        # TODO X_new['AggFn'] and ranking needs to be recalculated after changing aggregation function
 
     def transform(self, X):
-
-        if(not self.isFitted):
+        if not self.isFitted:
             raise Exception("fit is required before transform")
 
-        X_new = X.copy()
-        self.X_new = self.__normalizeData(X_new)
+        if not all (X.columns.values == self.X.columns.values):
+            raise ValueError("New dataset must have the same columns as the dataset used to fit transformer")
 
-        if(len(self.X_new.columns) == len(self.weights)):
-            self.__wmstd()
-            self.X_new['AggFn'] = self.agg_fn.TOPSISCalculation(np.mean(self.weights), self.X_new['Mean'], self.X_new['Std'])
+        # TODO a thorough validation of new data, bounds, missing values, etc. is required
 
-            self.ranked_alternatives = self.__ranking()
-            
-        return self.X_new
+        X_transformed = self.__normalizeData(X.copy())
+        w_means, w_stds, agg_values = self.transform_new_data(X_transformed)
+        X_transformed['Mean'] = w_means
+        X_transformed['Std'] = w_stds
+        X_transformed['AggFn'] = agg_values
+
+        return X_transformed
 
     def transform_new_data(self, X, normalize_data=False, print_ranks=False):
         if not self.isFitted:
@@ -548,13 +567,9 @@ class MSDTransformer(TransformerMixin):
             data to be normalized
         """
         c = 0
-        self.value_range = []
-        self.lower_bounds = []
         for col in data.columns:
             data[col] = (data[col] - self.expert_range[c][0]) / \
                 (self.expert_range[c][1]-self.expert_range[c][0])
-            self.value_range.append(self.expert_range[c][1] - self.expert_range[c][0])
-            self.lower_bounds.append(self.expert_range[c][0])
             c += 1
 
         for i in range(self.m):
