@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import itertools
 from IPython.display import display
+from scipy.spatial import Delaunay
 
 class MSDTransformer(TransformerMixin):
 
@@ -117,8 +118,260 @@ class MSDTransformer(TransformerMixin):
         func(alternative_to_improve, alternative_to_overcome, improvement_ratio, **kwargs)
 
     def plot(self):
+        """ Plots positions of alternatives in MSD space.
+        """
 
-      print("plot")
+        # for all possible mean and std count aggregation value and color it by it
+        precision = 500
+        w_means = []
+        w_stds = []
+        agg_values = []
+
+        for x in range(0,precision):
+            for y in range(0,int(precision/2)):
+                w_means.append(x/precision)
+                w_stds.append(y/precision)
+
+        for i in range(len(w_means)):
+            agg_values.append(self.agg_fn.TOPSISCalculation(np.mean(self.weights), w_means[i], w_stds[i]))
+
+
+        fig = go.Figure(data = go.Contour(
+                    x=w_means,
+                    y=w_stds,
+                    z=agg_values,
+                    zmin=0.0,
+                    zmax=1.0,
+                    colorscale = 'jet',
+                    contours_coloring='heatmap',
+                    line_width = 0,
+                    colorbar = dict(
+                        title='Aggregation value',
+                        titleside='right',
+                        outlinewidth=1,
+                        title_font_size=22,
+                        tickfont_size=15
+
+                        
+                    ),
+                    hoverinfo='none'),
+            layout=go.Layout(
+                title=go.layout.Title(
+                    text="Visualizations of dataset in MSD-space",
+                    font_size=30
+                    ),
+                title_x = 0.5,
+                xaxis_range = [0.0, 1.0],
+                yaxis_range = [0.0, 0.5]
+            )
+            )
+        
+        fig.update_xaxes(
+                        title_text="M: mean",
+                        title_font_size=22,
+                        tickfont_size=15,
+                        tickmode='auto',
+                        showline=True, 
+                        linewidth=1.25, 
+                        linecolor='black',
+                        minor=dict(
+                            ticklen=6,
+                            ticks="inside", 
+                            tickcolor="black", 
+                            showgrid=True
+                            )
+                        )
+        fig.update_yaxes(
+                        title_text="SD: std",
+                        title_font_size=22,
+                        tickfont_size=15,
+                        showline=True, 
+                        linewidth=1.25, 
+                        linecolor='black',
+                        minor=dict(
+                            ticklen=6,
+                            ticks="inside",
+                            tickcolor="black", 
+                            showgrid=True
+                            )
+                        )
+
+
+        # for all values 0.0-1.0 create all possible combinations and for each count mean and std values
+        # calculate precision so there always are 5^5 points (if i remember corectly) (to change this change 5 in given variable precision ^ temp_prec)
+        temp_prec = round(5/len(self.weights))
+        precision = round(pow(5, temp_prec))
+        tempset = []
+
+        # create values in range 0-1
+        for i in range(precision+1):
+            tempset.append(round(i/precision, 4))
+
+        temp_DataFrame1 = pd.DataFrame(list(itertools.product(
+            tempset, repeat=int((self.m)))), columns=self.X.columns.values)
+
+        wm, wsd = self.__calculate_wmeans_and_wstds_numpy(temp_DataFrame1.to_numpy())
+
+        temp_DataFrame1['Mean'] = wm
+        temp_DataFrame1['Std'] = wsd
+
+        temp_DataFrame1["Mean"] = round(temp_DataFrame1["Mean"], 4)
+        temp_DataFrame1["Std"] = round(temp_DataFrame1["Std"], 4)
+
+        max_mean = temp_DataFrame1["Mean"].max()
+
+        #temp_DataFrame1 = temp_DataFrame1[temp_DataFrame1["Mean"]<=max_mean/2]
+        temp_DataFrame1 = temp_DataFrame1[temp_DataFrame1["Mean"]<=max_mean]
+        temp_DataFrame1.sort_values(by=['Mean', 'Std'])
+
+        def max_std(m, n):
+            floor_mn = np.floor(m*n)
+            nm = n*m
+            value_under_sqrt = n * ( floor_mn + (floor_mn - nm)**2 ) - nm**2
+            return np.sqrt(value_under_sqrt) / n
+            
+        if len(set(self.weights)) == 1:
+            choosen_points3 = []
+            means = np.linspace(0, 1, 10000)
+            perimeter = max_std(means, self.m)
+            choosen_points3.append(means)
+            choosen_points3.append(perimeter)
+        else:
+            # choose the max for each mean (for less complicated graphs i used the commented line below but for more complicated ones it was taking too much time)
+            #temp_DataFrame = pd.DataFrame(temp_DataFrame1.groupby(['Mean'])['Std'].max().reset_index())
+            temp_DataFrame = pd.DataFrame(temp_DataFrame1)
+
+            # where does the graph end *100 (it just wasnt workin in for with a step 0.01 so that why its times 100)
+            max_mean = round(temp_DataFrame["Mean"].max(),2) * 100
+
+            # the function requires this
+            temp_np_array = temp_DataFrame[['Mean','Std']].to_numpy()
+
+            # i add a line on the std = 0 so that the outline goes on it
+            for i in range(0, int(max_mean+1)):
+                temp_np_array = np.append(temp_np_array,[[i/100,0.001]],axis=0)
+                temp_np_array = np.append(temp_np_array,[[i/100,0.0]],axis=0)
+
+            # we use a function from alpha_shape.py file that finds the outline but it returns it as a set of edges (the time strongly depends on the alpha value - the smaller value the bigger time but at the same time the smaller value the better graph precision and quality)
+            def alpha_shape(points, alpha, only_outer=True):
+                """
+                Compute the alpha shape (concave hull) of a set of points.
+                :param points: np.array of shape (n,2) points.
+                :param alpha: alpha value.
+                :param only_outer: boolean value to specify if we keep only the outer border
+                or also inner edges.
+                :return: set of (i,j) pairs representing edges of the alpha-shape. (i,j) are
+                the indices in the points array.
+                """
+                assert points.shape[0] > 3, "Need at least four points"
+                def add_edge(edges, i, j):
+                    """
+                    Add an edge between the i-th and j-th points,
+                    if not in the list already
+                    """
+                    if (i, j) in edges or (j, i) in edges:
+                        # already added
+                        assert (j, i) in edges, "Can't go twice over same directed edge right?"
+                        if only_outer:
+                            # if both neighboring triangles are in shape, it's not a boundary edge
+                            edges.remove((j, i))
+                        return
+                    edges.add((i, j))
+                tri = Delaunay(points)
+                edges = set()
+                # Loop over triangles:
+                # ia, ib, ic = indices of corner points of the triangle
+                for ia, ib, ic in tri.simplices:
+                    pa = points[ia]
+                    pb = points[ib]
+                    pc = points[ic]
+                    # Computing radius of triangle circumcircle
+                    # www.mathalino.com/reviewer/derivation-of-formulas/derivation-of-formula-for-radius-of-circumcircle
+                    a = np.sqrt((pa[0] - pb[0]) ** 2 + (pa[1] - pb[1]) ** 2)
+                    b = np.sqrt((pb[0] - pc[0]) ** 2 + (pb[1] - pc[1]) ** 2)
+                    c = np.sqrt((pc[0] - pa[0]) ** 2 + (pc[1] - pa[1]) ** 2)
+                    s = (a + b + c) / 2.0
+                    area = np.sqrt(s * (s - a) * (s - b) * (s - c))
+                    circum_r = a * b * c / (4.0 * area)
+                    if circum_r < alpha:
+                        add_edge(edges, ia, ib)
+                        add_edge(edges, ib, ic)
+                        add_edge(edges, ic, ia)
+                return edges
+            edges = alpha_shape(temp_np_array, alpha=0.015, only_outer=True)
+            choosen_points = []
+
+            # i get rid of all the points that are on the std = 0 to be left with the "upper" outline
+            for i, j in edges:
+                if temp_np_array[[i],1][0] >0.001 and temp_np_array[[j],1][0] >0.001 :
+                    choosen_points.append([temp_np_array[[i],0][0],temp_np_array[[i],1][0]])
+                    choosen_points.append([temp_np_array[[j],0][0],temp_np_array[[j],1][0]])
+
+            # add the begining and end
+            choosen_points.append([0,0])
+            choosen_points.append([max_mean/100,0])
+            choosen_points3 = pd.DataFrame(choosen_points)
+
+            # just to smoothen the graph
+            choosen_points3[0] = round(choosen_points3[0],3)
+            choosen_points3 = pd.DataFrame(choosen_points3.groupby([0])[1].max().reset_index())
+
+        # draw the outline
+        fig.add_trace(go.Scatter(
+            x=choosen_points3[0],
+            y=choosen_points3[1],
+            mode='lines',
+            showlegend = False,
+            hoverinfo='none',
+            line_color='black'
+        ))
+
+        # fill between the line and the std = 0.5
+        fig.add_trace(go.Scatter(
+            x=[0,1],
+            y=[0.5,0.5],
+            mode='lines',
+            fill='tonexty',
+            fillcolor='rgba(255, 255, 255, 1)',
+            showlegend = False,
+            hoverinfo='none',
+            line_color='white'
+        ))
+
+        # fill from the end of the graph to mean = 1
+        fig.add_trace(go.Scatter(
+            x=[max(choosen_points3[0]),max(choosen_points3[0]),1],
+            y=[0,0.5,0.5],
+            mode='lines',
+            fill='tozeroy',
+            fillcolor='rgba(255, 255, 255, 1)',
+            showlegend = False,
+            hoverinfo='none',
+            line_color='white'
+        ))
+        ### plot the ranked data
+        custom = []
+        for i in self.X_new.index.values:
+            custom.append(1+ self.ranked_alternatives.index(i))
+
+
+        fig.add_trace(go.Scatter(
+            x=self.X_new['Mean'].tolist(),
+            y=self.X_new['Std'].tolist(),
+            showlegend = False,
+            mode='markers',
+            marker=dict(
+                color='black',
+                size=10
+            )
+            ,customdata=custom,
+            text=self.X_new.index.values,
+            hovertemplate= '<b>%{text}</b><br>Rank: %{customdata:f}<extra></extra>'
+        ))
+
+        fig.show()
+        fig.write_image("plot.png")
+        return
 
     def show_ranking(self, mode = None, first = 1, last = None):
 
