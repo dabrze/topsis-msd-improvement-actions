@@ -14,6 +14,8 @@ from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.operators.crossover.sbx import SBX
 from pymoo.operators.mutation.pm import PM
 from pymoo.optimize import minimize
+import gurobipy as gp
+from gurobipy import GRB
 
 class MSDTransformer(TransformerMixin):
 
@@ -396,6 +398,159 @@ class MSDTransformer(TransformerMixin):
         fig.show()
         fig.write_image("plot.png")
         return
+
+    def plot2(self, heatmap_quality=500, rainbow_numpy=True, sampling_US_numpy=True):
+        import time
+        tic = time.perf_counter()
+        """ Plots positions of alternatives in MSD space.
+        """
+
+        # for all possible mean and std count aggregation value and color it by it
+        mean_ticks = np.linspace(0, 1, heatmap_quality + 1)
+        std_ticks = np.linspace(0, 0.5, heatmap_quality // 2 + 1)
+        grid = np.meshgrid(mean_ticks, std_ticks)
+        w_means = grid[0].ravel()
+        w_stds = grid[1].ravel()
+        agg_values = self.agg_fn.TOPSISCalculation(np.mean(self.weights), np.array(w_means), np.array(w_stds))
+
+        fig = go.Figure(data=go.Contour(
+            x=w_means,
+            y=w_stds,
+            z=agg_values,
+            zmin=0.0,
+            zmax=1.0,
+            colorscale='jet',
+            contours_coloring='heatmap',
+            line_width=0,
+            colorbar=dict(
+                title='Aggregation value',
+                titleside='right',
+                outlinewidth=1,
+                title_font_size=22,
+                tickfont_size=15
+
+            ),
+            hoverinfo='none'),
+            layout=go.Layout(
+                title=go.layout.Title(
+                    text="Visualizations of dataset in MSD-space",
+                    font_size=30
+                ),
+                title_x=0.5,
+                xaxis_range=[0.0, 1.0],
+                yaxis_range=[0.0, 0.5]
+            )
+        )
+
+        fig.update_xaxes(
+            title_text="M: mean",
+            title_font_size=22,
+            tickfont_size=15,
+            tickmode='auto',
+            showline=True,
+            linewidth=1.25,
+            linecolor='black',
+            minor=dict(
+                ticklen=6,
+                ticks="inside",
+                tickcolor="black",
+                showgrid=True
+            )
+        )
+        fig.update_yaxes(
+            title_text="SD: std",
+            title_font_size=22,
+            tickfont_size=15,
+            showline=True,
+            linewidth=1.25,
+            linecolor='black',
+            minor=dict(
+                ticklen=6,
+                ticks="inside",
+                tickcolor="black",
+                showgrid=True
+            )
+        )
+
+        # calculate upper perimeter
+        if len(set(self.weights)) == 1:
+            def max_std(m, n):
+                floor_mn = np.floor(m * n)
+                nm = n * m
+                value_under_sqrt = n * (floor_mn + (floor_mn - nm) ** 2) - nm ** 2
+                return np.sqrt(value_under_sqrt) / n
+
+            means = np.linspace(0, 1, 10000)
+            perimeter = max_std(means, self.n_criteria)
+        else:
+            quality_exact = {
+                2: 1000,
+                3: 600,
+                4: 400,
+                5: 300,
+                6: 200,
+                7: 150,
+                8: 125,
+                9: 100,
+            }
+            means = np.linspace(0, np.mean(self.weights), quality_exact.get(self.n_criteria, 50))
+            perimeter = [max_std_exact(mean, self.weights) for mean in means]
+
+        # draw upper perimeter
+        fig.add_trace(go.Scatter(
+            x=means,
+            y=perimeter,
+            mode='lines',
+            showlegend=False,
+            hoverinfo='none',
+            line_color='black'
+        ))
+
+        # fill between the line and the std = 0.5
+        fig.add_trace(go.Scatter(
+            x=[0, 1],
+            y=[0.5, 0.5],
+            mode='lines',
+            fill='tonexty',
+            fillcolor='rgba(255, 255, 255, 1)',
+            showlegend=False,
+            hoverinfo='none',
+            line_color='white'
+        ))
+
+        # fill from the end of the graph to mean = 1
+        fig.add_trace(go.Scatter(
+            x=[max(means), max(means), 1],
+            y=[0, 0.5, 0.5],
+            mode='lines',
+            fill='tozeroy',
+            fillcolor='rgba(255, 255, 255, 1)',
+            showlegend=False,
+            hoverinfo='none',
+            line_color='white'
+        ))
+        ### plot the ranked data
+        custom = []
+        for i in self.X_new.index.values:
+            custom.append(1 + self.ranked_alternatives.index(i))
+
+        fig.add_trace(go.Scatter(
+            x=self.X_new['Mean'].tolist(),
+            y=self.X_new['Std'].tolist(),
+            showlegend=False,
+            mode='markers',
+            marker=dict(
+                color='black',
+                size=10
+            )
+            , customdata=custom,
+            text=self.X_new.index.values,
+            hovertemplate='<b>%{text}</b><br>Rank: %{customdata:f}<extra></extra>'
+        ))
+
+        fig.show()
+        fig.write_image("plot2.png")
+        return None
 
     def show_ranking(self, mode = None, first = 1, last = None):
 
@@ -1164,3 +1319,25 @@ class RTOPSIS(TOPSISAggregationFunction):
               change = change/2
               actual_aggfn = self.TOPSISCalculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
           print("You should change standard deviation by ", std_start - alternative_to_improve["Std"])
+
+def max_std_exact(mean, weights):
+    n_criteria = len(weights)
+    w = np.array(weights)
+    s = np.sqrt(sum(w*w))/np.mean(w)
+
+    model = gp.Model("quadratic")
+    model.Params.LogToConsole = 0
+    model.params.NonConvex = 2
+    v = [model.addVar(vtype=GRB.CONTINUOUS, lb=0, ub=weights[idx]) for idx in range(n_criteria)]
+
+    factor = gp.quicksum([v[idx] * w[idx] for idx in range(n_criteria)]) / np.sum(w**2)  # sum(v * w) / sum(w ** 2)
+    vw = [w[idx] * factor for idx in range(n_criteria)]
+    v_minus_vw = [v[idx] - vw[idx] for idx in range(n_criteria)]
+    objective_function = gp.quicksum([v_minus_vw[idx]**2 for idx in range(n_criteria)])
+
+    model.addConstr(gp.quicksum([vw[idx]**2 for idx in range(n_criteria)]) == (mean*s)**2)
+    model.setObjective(objective_function, GRB.MAXIMIZE)
+    model.optimize()
+
+    value = max(0, model.ObjVal)
+    return np.sqrt(value) / s
