@@ -16,6 +16,7 @@ from pymoo.operators.mutation.pm import PM
 from pymoo.optimize import minimize
 import gurobipy as gp
 from gurobipy import GRB
+import pyscipopt as scip
 
 class MSDTransformer(TransformerMixin):
 
@@ -399,7 +400,14 @@ class MSDTransformer(TransformerMixin):
         fig.write_image("plot.png")
         return
 
-    def plot2(self, heatmap_quality=500, rainbow_numpy=True, sampling_US_numpy=True):
+    def plot2(self, heatmap_quality=500, max_std_solver="gurobi"):
+        if max_std_solver.lower() == "gurobi":
+            max_std_exact = max_std_gurobi
+        elif max_std_solver.lower() == "scip":
+            max_std_exact = max_std_scip
+        else:
+            raise ValueError(f"Solver {max_std_solver} is not supported.")
+
         import time
         tic = time.perf_counter()
         """ Plots positions of alternatives in MSD space.
@@ -1320,7 +1328,7 @@ class RTOPSIS(TOPSISAggregationFunction):
               actual_aggfn = self.TOPSISCalculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
           print("You should change standard deviation by ", std_start - alternative_to_improve["Std"])
 
-def max_std_exact(mean, weights):
+def max_std_gurobi(mean, weights):
     n_criteria = len(weights)
     w = np.array(weights)
     s = np.sqrt(sum(w*w))/np.mean(w)
@@ -1340,4 +1348,31 @@ def max_std_exact(mean, weights):
     model.optimize()
 
     value = max(0, model.ObjVal)
+    return np.sqrt(value) / s
+
+
+def max_std_scip(mean, weights):
+    n_criteria = len(weights)
+    w = np.array(weights)
+    s = np.sqrt(sum(w * w)) / np.mean(w)
+
+    model = scip.Model("quadratic")
+    model.hideOutput()
+    v = [model.addVar(vtype="C", lb=0, ub=weights[idx]) for idx in range(n_criteria)]
+
+    factor = scip.quicksum([v[idx] * w[idx] for idx in range(n_criteria)]) / np.sum(w ** 2)  # sum(v * w) / sum(w ** 2)
+    vw = [w[idx] * factor for idx in range(n_criteria)]
+    v_minus_vw = [v[idx] - vw[idx] for idx in range(n_criteria)]
+
+    objective_variable = model.addVar(vtype="C", lb=0)
+    model.setObjective(objective_variable, sense="maximize")
+
+    # SCIP does not support nonlinear objective functions, so we need to reformulate the problem by moving the objective into a constraint.
+    objective_variable_constraint = scip.quicksum([v_minus_vw[idx] ** 2 for idx in range(n_criteria)])
+    model.addCons(objective_variable <= objective_variable_constraint)
+
+    model.addCons(scip.quicksum([vw[idx] ** 2 for idx in range(n_criteria)]) == (mean * s) ** 2)
+    model.optimize()
+
+    value = max(0, model.getObjVal())
     return np.sqrt(value) / s

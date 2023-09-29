@@ -8,3 +8,4 @@ pytest==7.4.2
 ipython==8.15.0
 pymoo~=0.6.0
 gurobipy~=10.0
+pyscipopt~=4.3
