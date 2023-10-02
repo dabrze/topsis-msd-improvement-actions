@@ -14,9 +14,9 @@ from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.operators.crossover.sbx import SBX
 from pymoo.operators.mutation.pm import PM
 from pymoo.optimize import minimize
-import gurobipy as gp
-from gurobipy import GRB
-import pyscipopt as scip
+#import gurobipy as gp
+#from gurobipy import GRB
+#import pyscipopt as scip
 
 class MSDTransformer(TransformerMixin):
 
@@ -85,7 +85,7 @@ class MSDTransformer(TransformerMixin):
         if not all (X.columns.values == self.X.columns.values):
             raise ValueError("New dataset must have the same columns as the dataset used to fit transformer")
 
-        # TODO a thorough validation of new data, bounds, missing values, etc. is required
+        self.__checkInputAfterTransform(X)
 
         X_transformed = self.__normalizeData(X.copy())
         w_means, w_stds, agg_values = self.transform_new_data(X_transformed)
@@ -594,7 +594,9 @@ class MSDTransformer(TransformerMixin):
         
         display(ranking.drop(['Mean', 'Std', 'AggFn'], axis=1))
         return
-    
+
+
+
     def __check_agg_fn(self, agg_fn):
         if isinstance(agg_fn, str):
             if agg_fn == "A":
@@ -664,6 +666,9 @@ class MSDTransformer(TransformerMixin):
         
     def __checkInput(self):
 
+        if self.X.isnull().values.any():
+           raise ValueError("Dataframe must not contain any none/nan values, but found at least one")
+
         if (len(self.weights) != self.m):
             raise ValueError("Invalid value 'weights'.")
 
@@ -703,6 +708,27 @@ class MSDTransformer(TransformerMixin):
         for val, mini, maxi in zip(self.expert_range, lower_bound, upper_bound):
             if not (val[0]<=mini and val[1]>=maxi):
                raise ValueError("Invalid value at 'expert_range'. All values from original data must be in a range of expert_range.")
+            
+
+    def __checkInputAfterTransform(self, X):
+        n = X.shape[0]
+        m = X.shape[1]
+
+        if X.isnull().values.any():
+           raise ValueError("Dataframe must not contain any none/nan values, but found at least one")
+        
+        if (len(self.weights) != m):
+            raise ValueError("Invalid number of columns. Number of criteria must be the same as in previous dataframe.")
+        
+        if (len(self.objectives) != m):
+            raise ValueError("Invalid number of columns. Number of criteria must be the same as in previous dataframe.")
+        
+        lower_bound = np.array(X.min()).tolist()
+        upper_bound = np.array(X.max()).tolist()
+
+        for val, mini, maxi in zip(self.expert_range, lower_bound, upper_bound):
+            if not (val[0]<=mini and val[1]>=maxi):
+               raise ValueError("Invalid value at 'expert_range'. All values from original data must be in a range of expert_range.")
 
     def __check_show_ranking(self, first, last):
 
@@ -720,7 +746,9 @@ class MSDTransformer(TransformerMixin):
         
         if last < first:
            raise ValueError("'first' must be not greater than 'last'")
-        
+
+
+
     def __normalizeData(self, data):
         """normalize given data using either given expert range or min/max
         uses the min-max normalization with minimum and maximum taken from expert ranges if given
