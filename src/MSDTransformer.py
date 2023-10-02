@@ -14,9 +14,9 @@ from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.operators.crossover.sbx import SBX
 from pymoo.operators.mutation.pm import PM
 from pymoo.optimize import minimize
-#import gurobipy as gp
-#from gurobipy import GRB
-#import pyscipopt as scip
+import gurobipy as gp
+from gurobipy import GRB
+import pyscipopt as scip
 
 class MSDTransformer(TransformerMixin):
 
