@@ -1,3 +1,4 @@
+import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 import numpy as np
@@ -127,6 +128,32 @@ class MSDTransformer(TransformerMixin):
         wmeans = np.linalg.norm(vw, axis=1) / s
         wstds = np.linalg.norm(v - vw, axis=1) / s
         return wmeans, wstds
+
+    def inverse_transform(self, target_mean, target_std, std_type, sampling_density=None, epsilon=0.001):
+        if sampling_density is None:
+            sampling_density = math.ceil(5000000 ** (1 / self.n_criteria))
+            # print("sampling_density", sampling_density)
+
+        dims = [np.linspace(0, 1, sampling_density) for i in range(self.n_criteria)]
+        grid = np.meshgrid(*dims)
+        points = np.column_stack([xx.ravel() for xx in grid])
+        # print(f"{len(points)} samples generated in total")
+        w_means, w_stds = self.transform_US_to_wmsd(points)
+
+        if std_type == "==":
+            filtered_points = points[np.bitwise_and(abs(w_means - target_mean) < epsilon, abs(target_std - w_stds) < epsilon)]
+        elif std_type == "<=":
+            filtered_points = points[np.bitwise_and(abs(w_means - target_mean) < epsilon, w_stds <= target_std)]
+        elif std_type == ">=":
+            filtered_points = points[np.bitwise_and(abs(w_means - target_mean) < epsilon, w_stds >= target_std)]
+        else:
+            raise ValueError("Invalid value at `std_type`, should be one of the following strings '==', '<=', '>='")
+        # TODO move validation of std_type before computationally expensive sampling and transformation
+
+        # print(f"Result shape {filtered_points.shape}")
+        return pd.DataFrame(filtered_points, columns=self.X.columns)
+
+
 
     def improvement(self, function_name, alternative_to_improve, alternative_to_overcome, improvement_ratio, **kwargs):
 
