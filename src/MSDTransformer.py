@@ -15,14 +15,13 @@ from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.operators.crossover.sbx import SBX
 from pymoo.operators.mutation.pm import PM
 from pymoo.optimize import minimize
-import gurobipy as gp
-from gurobipy import GRB
-import pyscipopt as scip
+
 
 class MSDTransformer(TransformerMixin):
 
-    def __init__(self, agg_fn):
+    def __init__(self, agg_fn, max_std_calculator="scip"):
         self.agg_fn = self.__check_agg_fn(agg_fn)
+        self.max_std_calculator = self.__check_max_std_calculator(max_std_calculator)
         self.isFitted = False
              
     def fit(self, X, weights=None, objectives=None, expert_range=None):
@@ -427,17 +426,9 @@ class MSDTransformer(TransformerMixin):
         fig.write_image("plot.png")
         return
 
-    def plot2(self, heatmap_quality=500, max_std_solver="gurobi"):
-        if max_std_solver.lower() == "gurobi":
-            max_std_exact = max_std_gurobi
-        elif max_std_solver.lower() == "scip":
-            max_std_exact = max_std_scip
-        else:
-            raise ValueError(f"Solver {max_std_solver} is not supported.")
-
-        import time
-        tic = time.perf_counter()
-        """ Plots positions of alternatives in MSD space.
+    def plot2(self, heatmap_quality=500):
+        """
+        Plots positions of alternatives in MSD space.
         """
 
         # for all possible mean and std count aggregation value and color it by it
@@ -529,7 +520,7 @@ class MSDTransformer(TransformerMixin):
                 9: 100,
             }
             means = np.linspace(0, np.mean(self.weights), quality_exact.get(self.n_criteria, 50))
-            perimeter = [max_std_exact(mean, self.weights) for mean in means]
+            perimeter = [self.max_std_calculator(mean, self.weights) for mean in means]
 
         # draw upper perimeter
         fig.add_trace(go.Scatter(
@@ -622,7 +613,20 @@ class MSDTransformer(TransformerMixin):
         display(ranking.drop(['Mean', 'Std', 'AggFn'], axis=1))
         return
 
-
+    def __check_max_std_calculator(self, max_std_calculator):
+        if isinstance(max_std_calculator, str):
+            if max_std_calculator == "scip":
+                from max_std_calculator_scip import max_std_scip
+                return max_std_scip
+            elif max_std_calculator == "gurobi":
+                from max_std_calculator_gurobi import max_std_gurobi
+                return max_std_gurobi
+            else:
+                raise ValueError("Invalid value at 'agg_fn': must be string (gurobi or scip) or function.")
+        elif callable(max_std_calculator):
+            return max_std_calculator
+        else:
+            raise ValueError("Invalid value at 'agg_fn': must be string (scip or gurobi) or function.")
 
     def __check_agg_fn(self, agg_fn):
         if isinstance(agg_fn, str):
@@ -958,7 +962,7 @@ class TOPSISAggregationFunction(ABC):
         print("You should change mean by ", alternative_to_improve["Mean"] - m_start)
 
 
-    def improvement_features(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, features_to_change, boundary_values = None **kwargs):
+    def improvement_features(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, features_to_change, boundary_values = None, **kwargs):
       if boundary_values is None:
         boundary_values = np.ones(len(features_to_change))
       else:
@@ -1183,7 +1187,7 @@ class ATOPSIS(TOPSISAggregationFunction):
 
       w = np.mean(self.msd_transformer.weights)
       std_start = alternative_to_improve["Std"]
-      sd_boundary = max_std_scip(alternative_to_improve["Mean"], self.msd_transformer.weights)
+      sd_boundary = self.msd_transformer.max_std_calculator(alternative_to_improve["Mean"], self.msd_transformer.weights)
       if self.TOPSISCalculation(w, alternative_to_improve["Mean"], sd_boundary) < alternative_to_overcome["AggFn"]:
          print("It is impossible to improve with only standard deviation")
       else:
@@ -1260,7 +1264,7 @@ class ITOPSIS(TOPSISAggregationFunction):
 
       w = np.mean(self.msd_transformer.weights)
       std_start = alternative_to_improve["Std"]
-      sd_boundary = max_std_scip(alternative_to_improve["Mean"], self.msd_transformer.weights)
+      sd_boundary = self.msd_transformer.max_std_calculator(alternative_to_improve["Mean"], self.msd_transformer.weights)
       if self.TOPSISCalculation(w, alternative_to_improve["Mean"], 0) < alternative_to_overcome["AggFn"]:
         print("It is impossible to improve with only standard deviation")
       else:
@@ -1343,7 +1347,7 @@ class RTOPSIS(TOPSISAggregationFunction):
 
       w = np.mean(self.msd_transformer.weights)
       std_start = alternative_to_improve["Std"]
-      sd_boundary = max_std_scip(alternative_to_improve["Mean"], self.msd_transformer.weights)
+      sd_boundary = self.msd_transformer.max_std_calculator(alternative_to_improve["Mean"], self.msd_transformer.weights)
       if (alternative_to_improve["Mean"]<sd_boundary):
         if self.TOPSISCalculation(w, alternative_to_improve["Mean"], sd_boundary) < alternative_to_overcome["AggFn"]:
           print("It is impossible to improve with only standard deviation")
@@ -1383,51 +1387,3 @@ class RTOPSIS(TOPSISAggregationFunction):
               actual_aggfn = self.TOPSISCalculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
           print("You should change standard deviation by ", std_start - alternative_to_improve["Std"])
 
-def max_std_gurobi(mean, weights):
-    n_criteria = len(weights)
-    w = np.array(weights)
-    s = np.sqrt(sum(w*w))/np.mean(w)
-
-    model = gp.Model("quadratic")
-    model.Params.LogToConsole = 0
-    model.params.NonConvex = 2
-    v = [model.addVar(vtype=GRB.CONTINUOUS, lb=0, ub=weights[idx]) for idx in range(n_criteria)]
-
-    factor = gp.quicksum([v[idx] * w[idx] for idx in range(n_criteria)]) / np.sum(w**2)  # sum(v * w) / sum(w ** 2)
-    vw = [w[idx] * factor for idx in range(n_criteria)]
-    v_minus_vw = [v[idx] - vw[idx] for idx in range(n_criteria)]
-    objective_function = gp.quicksum([v_minus_vw[idx]**2 for idx in range(n_criteria)])
-
-    model.addConstr(gp.quicksum([vw[idx]**2 for idx in range(n_criteria)]) == (mean*s)**2)
-    model.setObjective(objective_function, GRB.MAXIMIZE)
-    model.optimize()
-
-    value = max(0, model.ObjVal)
-    return np.sqrt(value) / s
-
-
-def max_std_scip(mean, weights):
-    n_criteria = len(weights)
-    w = np.array(weights)
-    s = np.sqrt(sum(w * w)) / np.mean(w)
-
-    model = scip.Model("quadratic")
-    model.hideOutput()
-    v = [model.addVar(vtype="C", lb=0, ub=weights[idx]) for idx in range(n_criteria)]
-
-    factor = scip.quicksum([v[idx] * w[idx] for idx in range(n_criteria)]) / np.sum(w ** 2)  # sum(v * w) / sum(w ** 2)
-    vw = [w[idx] * factor for idx in range(n_criteria)]
-    v_minus_vw = [v[idx] - vw[idx] for idx in range(n_criteria)]
-
-    objective_variable = model.addVar(vtype="C", lb=0)
-    model.setObjective(objective_variable, sense="maximize")
-
-    # SCIP does not support nonlinear objective functions, so we need to reformulate the problem by moving the objective into a constraint.
-    objective_variable_constraint = scip.quicksum([v_minus_vw[idx] ** 2 for idx in range(n_criteria)])
-    model.addCons(objective_variable <= objective_variable_constraint)
-
-    model.addCons(scip.quicksum([vw[idx] ** 2 for idx in range(n_criteria)]) == (mean * s) ** 2)
-    model.optimize()
-
-    value = max(0, model.getObjVal())
-    return np.sqrt(value) / s
