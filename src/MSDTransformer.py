@@ -155,7 +155,7 @@ class MSDTransformer(TransformerMixin):
 
 
 
-    def improvement(self, function_name, alternative_to_improve, alternative_to_overcome, improvement_ratio, **kwargs):
+    def improvement(self, function_name, alternative_to_improve, alternative_to_overcome, improvement_ratio = 0.01, **kwargs):
 
         if(type(alternative_to_improve) == int):
           alternative_to_improve = self.X_new.loc[self.ranked_alternatives[alternative_to_improve]].copy()
@@ -958,8 +958,22 @@ class TOPSISAggregationFunction(ABC):
         print("You should change mean by ", alternative_to_improve["Mean"] - m_start)
 
 
-    def improvement_features(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, features_to_change, **kwargs):
-      
+    def improvement_features(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, features_to_change, boundary_values = None **kwargs):
+      if boundary_values is None:
+        boundary_values = np.ones(len(features_to_change))
+      else:
+        if len(features_to_change) != len(boundary_values):
+          raise ValueError("Invalid value at 'boundary_values': must be same lenght as 'features_to_change'")
+        for i in range(len(features_to_change)):
+          col = self.msd_transformer.X_new.columns.get_loc(features_to_change[i])
+          if boundary_values[i] < self.msd_transformer.expert_range[col][0] or boundary_values[i] > self.msd_transformer.expert_range[col][1]:
+            raise ValueError("Invalid value at 'boundary_values': must be between defined 'expert_range'")
+          else:
+            boundary_values[i] = (boundary_values[i]-self.msd_transformer.expert_range[col][0])/(self.msd_transformer.expert_range[col][1]-self.msd_transformer.expert_range[col][0])
+            if self.msd_transformer.objectives[col] == "min":
+              boundary_values[i] = 1 - boundary_values[i]
+            if alternative_to_improve[features_to_change[i]] > boundary_values[i]:
+              raise ValueError("Invalid value at 'boundary_values': must be better or equal to improving alternative values")
       AggFn = alternative_to_improve["AggFn"]
       alternative_to_improve = alternative_to_improve.drop(labels = ["Mean", "Std", "AggFn"])
       improvement_start = alternative_to_improve.copy()
@@ -971,8 +985,8 @@ class TOPSISAggregationFunction(ABC):
       is_improvement_satisfactory = False
 
       s = np.sqrt(sum(w*w))/np.mean(w)
-      for i in features_to_change:
-        alternative_to_improve[i] = 1
+      for i,k in zip(features_to_change, boundary_values):
+        alternative_to_improve[i] = k
         v = alternative_to_improve * w
         vw = (sum(v * w)/sum(w * w)) * w
         mean = np.sqrt(sum(vw*vw))/s
@@ -982,13 +996,13 @@ class TOPSISAggregationFunction(ABC):
         if AggFn < alternative_to_overcome["AggFn"]:
           continue
 
-        alternative_to_improve[i] = 0.5
+        alternative_to_improve[i] = 0.5*k
         v = alternative_to_improve * w
         vw = (sum(v * w)/sum(w * w)) * w
         mean = np.sqrt(sum(vw*vw))/s
         std = np.sqrt(sum((v-vw)*(v-vw)))/s
         AggFn = self.TOPSISCalculation(np.mean(w), mean, std)
-        change_ratio = 0.25
+        change_ratio = 0.25*k
         while True:
           if AggFn < alternative_to_overcome["AggFn"]:
             alternative_to_improve[i] += change_ratio
@@ -1014,22 +1028,8 @@ class TOPSISAggregationFunction(ABC):
             else:
               alternative_to_improve[j] = -value_range[j] * alternative_to_improve[j]
           
-          #self.__printChanges(alternative_to_improve, features_to_change)
           display(alternative_to_improve.to_frame(name = "Improvement rate"))
           break
-
-          for i in range(len(features_to_change)):
-            print(improvements)
-            if(improvements[i] == 0):
-              print(improvements[0])
-              continue
-            elif(self.objectives[i] == "max"):
-              improvements[i] = self.value_range[features_to_change[i]] * improvements[i]
-            else:
-              improvements[i] = -(self.value_range[features_to_change[i]] * improvements[i])
-          print("to achieve that you should change your features by this values:")
-          print(improvements)
-
       else:
         print("This set of features to change is not sufficient to overcame that alternative")
 
@@ -1183,7 +1183,7 @@ class ATOPSIS(TOPSISAggregationFunction):
 
       w = np.mean(self.msd_transformer.weights)
       std_start = alternative_to_improve["Std"]
-      sd_boundary = w/2
+      sd_boundary = max_std_scip(alternative_to_improve["Mean"], self.msd_transformer.weights)
       if self.TOPSISCalculation(w, alternative_to_improve["Mean"], sd_boundary) < alternative_to_overcome["AggFn"]:
          print("It is impossible to improve with only standard deviation")
       else:
@@ -1260,7 +1260,7 @@ class ITOPSIS(TOPSISAggregationFunction):
 
       w = np.mean(self.msd_transformer.weights)
       std_start = alternative_to_improve["Std"]
-      sd_boundary = w/2
+      sd_boundary = max_std_scip(alternative_to_improve["Mean"], self.msd_transformer.weights)
       if self.TOPSISCalculation(w, alternative_to_improve["Mean"], 0) < alternative_to_overcome["AggFn"]:
         print("It is impossible to improve with only standard deviation")
       else:
@@ -1343,7 +1343,7 @@ class RTOPSIS(TOPSISAggregationFunction):
 
       w = np.mean(self.msd_transformer.weights)
       std_start = alternative_to_improve["Std"]
-      sd_boundary = w/2
+      sd_boundary = max_std_scip(alternative_to_improve["Mean"], self.msd_transformer.weights)
       if (alternative_to_improve["Mean"]<sd_boundary):
         if self.TOPSISCalculation(w, alternative_to_improve["Mean"], sd_boundary) < alternative_to_overcome["AggFn"]:
           print("It is impossible to improve with only standard deviation")
