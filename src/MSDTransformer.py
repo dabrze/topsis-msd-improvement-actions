@@ -82,40 +82,15 @@ class MSDTransformer(TransformerMixin):
         if not self.isFitted:
             raise Exception("fit is required before transform")
 
-        if not all (X.columns.values == self.X.columns.values):
-            raise ValueError("New dataset must have the same columns as the dataset used to fit transformer")
-
         self.__check_input_after_transform(X)
-
         X_transformed = self.__normalize_data(X.copy())
-        w_means, w_stds, agg_values = self.transform_new_data(X_transformed)
+        w_means, w_stds = self.transform_US_to_wmsd(np.array(X_transformed))
+        agg_values = self.agg_fn.TOPSIS_calculation(np.mean(self.weights), w_means, w_stds)
         X_transformed['Mean'] = w_means
         X_transformed['Std'] = w_stds
         X_transformed['AggFn'] = agg_values
 
         return X_transformed
-
-    def transform_new_data(self, X, normalize_data=False, print_ranks=False):
-        if not self.isFitted:
-            raise Exception("fit is required before transforming new data")
-
-        if normalize_data:
-            # TODO Make sure that the performances of the new alternatives does not exceed the initially established range of evaluations
-            X_US = (np.array(X) - np.array(self.lower_bounds)) / np.array(self.value_range)
-
-            for i in range(self.m):
-                if self.objectives[i] == 'min':
-                    X_US[:, i] = 1 - X_US[:, i]
-        else:
-            X_US = np.array(X)
-
-        w_means, w_stds = self.transform_US_to_wmsd(X_US)
-        agg_values = self.agg_fn.TOPSIS_calculation(np.mean(self.weights), w_means, w_stds)
-        if print_ranks:
-            ranking_func = np.vectorize(lambda agg_value: 1 + np.sum(self.X_new['AggFn'] > agg_value))
-            ranks = ranking_func(agg_values)
-            print(agg_values, ranks)
-        return w_means, w_stds, agg_values
 
     def transform_US_to_wmsd(self, X_US):
         # transform data from Utility Space to WMSD Space
@@ -739,7 +714,6 @@ class MSDTransformer(TransformerMixin):
         for val, mini, maxi in zip(self.expert_range, lower_bound, upper_bound):
             if not (val[0]<=mini and val[1]>=maxi):
                raise ValueError("Invalid value at 'expert_range'. All values from original data must be in a range of expert_range.")
-            
 
     def __check_input_after_transform(self, X):
         n = X.shape[0]
@@ -751,8 +725,8 @@ class MSDTransformer(TransformerMixin):
         if (len(self.weights) != m):
             raise ValueError("Invalid number of columns. Number of criteria must be the same as in previous dataframe.")
         
-        if (len(self.objectives) != m):
-            raise ValueError("Invalid number of columns. Number of criteria must be the same as in previous dataframe.")
+        if not all(X.columns.values == self.X.columns.values):
+            raise ValueError("New dataset must have the same columns as the dataset used to fit MSDTransformer")
         
         lower_bound = np.array(X.min()).tolist()
         upper_bound = np.array(X.max()).tolist()
