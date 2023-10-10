@@ -23,7 +23,7 @@ class MSDTransformer(TransformerMixin):
         self.agg_fn = self.__check_agg_fn(agg_fn)
         self.max_std_calculator = self.__check_max_std_calculator(max_std_calculator)
         self.isFitted = False
-             
+
     def fit(self, X, weights=None, objectives=None, expert_range=None):
 
         self.X = X
@@ -73,7 +73,6 @@ class MSDTransformer(TransformerMixin):
         self.ranked_alternatives = self.__ranking()
         return self.X_new
 
-
     def change_aggregation_function(self, agg_fn):
         self.agg_fn = self.__check_agg_fn(agg_fn)
         # TODO X_new['AggFn'] and ranking needs to be recalculated after changing aggregation function
@@ -99,9 +98,9 @@ class MSDTransformer(TransformerMixin):
         v = X_US * w
 
         vw = (np.sum(v * w, axis=1) / np.sum(w ** 2)).reshape(-1, 1) @ w.reshape(1, -1)
-        wmeans = np.linalg.norm(vw, axis=1) / s
-        wstds = np.linalg.norm(v - vw, axis=1) / s
-        return wmeans, wstds
+        w_means = np.linalg.norm(vw, axis=1) / s
+        w_stds = np.linalg.norm(v - vw, axis=1) / s
+        return w_means, w_stds
 
     def inverse_transform(self, target_mean, target_std, std_type, sampling_density=None, epsilon=0.001):
         if sampling_density is None:
@@ -127,20 +126,17 @@ class MSDTransformer(TransformerMixin):
         # print(f"Result shape {filtered_points.shape}")
         return pd.DataFrame(filtered_points, columns=self.X.columns)
 
+    def improvement(self, function_name, alternative_to_improve, alternative_to_overcome, improvement_ratio=0.01, **kwargs):
 
-
-    def improvement(self, function_name, alternative_to_improve, alternative_to_overcome, improvement_ratio = 0.01, **kwargs):
-
-        if(type(alternative_to_improve) == int):
+        if type(alternative_to_improve) == int:
             alternative_to_improve = self.X_new.loc[self.ranked_alternatives[alternative_to_improve]].copy()
-        elif(type(alternative_to_improve) == str):
+        elif type(alternative_to_improve) == str:
             alternative_to_improve = self.X_new.loc[alternative_to_improve].copy()
 
-        if(type(alternative_to_overcome) == int):
+        if type(alternative_to_overcome) == int:
             alternative_to_overcome = self.X_new.loc[self.ranked_alternatives[alternative_to_overcome]].copy()
-        elif(type(alternative_to_overcome) == str):
+        elif type(alternative_to_overcome) == str:
             alternative_to_overcome = self.X_new.loc[alternative_to_overcome].copy()
-          
 
         func = getattr(self.agg_fn, function_name)
         return func(alternative_to_improve, alternative_to_overcome, improvement_ratio, **kwargs)
@@ -553,15 +549,15 @@ class MSDTransformer(TransformerMixin):
         fig.write_image("plot2.png")
         return None
 
-    def show_ranking(self, mode = None, first = 1, last = None):
+    def show_ranking(self, mode=None, first=1, last=None):
 
         if last is None:
-           last = len(self.X_new.index)
+            last = len(self.X_new.index)
 
         self.__check_show_ranking(first, last)
 
         ranking = self.X_new
-        ranking = ranking.assign(Rank = None)
+        ranking = ranking.assign(Rank=None)
         columns = ranking.columns.tolist()
         columns = columns[-1:] + columns[:-1]
         ranking = ranking[columns]
@@ -570,9 +566,9 @@ class MSDTransformer(TransformerMixin):
         for alternative in alternative_names:
             ranking['Rank'][alternative] = self.ranked_alternatives.index(alternative) + 1
 
-        ranking = ranking.sort_values(by = ['Rank'])
-        #ranking = ranking.loc[max(first-1, 0):last]
-        ranking = ranking[(first-1):last]
+        ranking = ranking.sort_values(by=['Rank'])
+        # ranking = ranking.loc[max(first-1, 0):last]
+        ranking = ranking[(first - 1):last]
 
         if isinstance(mode, str):
             if mode == 'minimal':
@@ -582,9 +578,9 @@ class MSDTransformer(TransformerMixin):
             elif mode == 'full':
                 display(ranking)
             else:
-               raise ValueError("Invalid value at 'mode': must be a string (minimal, standard, or full).")
+                raise ValueError("Invalid value at 'mode': must be a string (minimal, standard, or full).")
             return
-        
+
         display(ranking.drop(['Mean', 'Std', 'AggFn'], axis=1))
         return
 
@@ -617,31 +613,31 @@ class MSDTransformer(TransformerMixin):
             return agg_fn(self)
         else:
             raise ValueError("Invalid value at 'agg_fn': must be string (A, I, or R) or class implementing TOPSISAggregationFunction.")
-  
+
     def __check_weights(self, weights):
         if isinstance(weights, list):
-           return weights
-        
+            return weights
+
         elif isinstance(weights, dict):
-           return self.__dict_to_list(weights)
-        
+            return self.__dict_to_list(weights)
+
         elif weights is None:
-           return np.ones(self.m)
-        
+            return np.ones(self.m)
+
         else:
-           raise ValueError("Invalid value at 'weights': must be a list or a dictionary")
+            raise ValueError("Invalid value at 'weights': must be a list or a dictionary")
 
     def __check_objectives(self, objectives):
         if isinstance(objectives, list):
-           return objectives
+            return objectives
         elif isinstance(objectives, str):
-           return np.repeat(objectives, self.m)
+            return np.repeat(objectives, self.m)
         elif isinstance(objectives, dict):
-           return self.__dict_to_list(objectives)
+            return self.__dict_to_list(objectives)
         elif objectives is None:
-           return np.repeat('max', self.m)
+            return np.repeat('max', self.m)
         else:
-           raise ValueError("Invalid value at 'objectives': must be a list or a string (gain, g, cost, c, min or max) or a dictionary")
+            raise ValueError("Invalid value at 'objectives': must be a list or a string (gain, g, cost, c, min or max) or a dictionary")
 
     def __check_expert_range(self, expert_range):
         if isinstance(expert_range, dict):
@@ -651,14 +647,14 @@ class MSDTransformer(TransformerMixin):
 
             if all(isinstance(e, list) for e in expert_range):
                 return expert_range
-            
+
             elif all(isinstance(e, (int, float, np.float64)) for e in expert_range):
                 expert_range = [expert_range]
-                numpy_expert_range = np.repeat(expert_range, self.m, axis = 0)
+                numpy_expert_range = np.repeat(expert_range, self.m, axis=0)
                 return numpy_expert_range.tolist()
-            
+
             else:
-               raise ValueError("Invalid value at 'expert_range': must be a homogenous list (1D or 2D) or a dictionary")
+                raise ValueError("Invalid value at 'expert_range': must be a homogenous list (1D or 2D) or a dictionary")
 
         elif expert_range is None:
             lower_bounds = self.X.min()
@@ -666,46 +662,46 @@ class MSDTransformer(TransformerMixin):
             expert_range = [lower_bounds, upper_bounds]
             numpy_expert_range = np.array(expert_range).T
             return numpy_expert_range.tolist()
-        
+
         else:
-           raise ValueError("Invalid value at 'expert_range': must be a homogenous list (1D or 2D) or a dictionary")
-        
+            raise ValueError("Invalid value at 'expert_range': must be a homogenous list (1D or 2D) or a dictionary")
+
     def __check_input(self):
 
         if self.X.isnull().values.any():
-           raise ValueError("Dataframe must not contain any none/nan values, but found at least one")
+            raise ValueError("Dataframe must not contain any none/nan values, but found at least one")
 
-        if (len(self.weights) != self.m):
+        if len(self.weights) != self.m:
             raise ValueError("Invalid value 'weights'.")
 
-        if(not all(type(item) in [int, float, np.float64] for item in self.weights)):
+        if not all(type(item) in [int, float, np.float64] for item in self.weights):
             raise ValueError("Invalid value 'weights'. Expected numerical value (int or float).")
-        
-        if(not all(item >= 0 for item in self.weights)):
+
+        if not all(item >= 0 for item in self.weights):
             raise ValueError("Invalid value 'weights'. Expected value must be non-negative.")
-        
-        if(not any(item > 0 for item in self.weights)):
+
+        if not any(item > 0 for item in self.weights):
             raise ValueError("Invalid value 'weights'. At least one weight must be positive.")
 
-        if (len(self.objectives) != self.m):
+        if len(self.objectives) != self.m:
             raise ValueError("Invalid value 'objectives'.")
 
-        if(not all(item in ["min", "max"] for item in self.objectives)):
+        if not all(item in ["min", "max"] for item in self.objectives):
             raise ValueError(
                 "Invalid value at 'objectives'. Use 'min', 'max', 'gain', 'cost', 'g' or 'c'.")
 
-        if(len(self.expert_range) != len(self.objectives)):
+        if len(self.expert_range) != len(self.objectives):
             raise ValueError(
                 "Invalid value at 'expert_range'. Length of should be equal to number of criteria.")
-        
+
         for col in self.expert_range:
-            if(len(col) != 2):
+            if len(col) != 2:
                 raise ValueError(
                     "Invalid value at 'expert_range'. Every criterion has to have minimal and maximal value.")
-            if(not all(type(item) in [int, float] for item in col)):
+            if not all(type(item) in [int, float] for item in col):
                 raise ValueError(
                     "Invalid value at 'expert_range'. Expected numerical value (int or float).")
-            if(col[0] > col[1]):
+            if col[0] > col[1]:
                 raise ValueError("Invalid value at 'expert_range'. Minimal value  is bigger then maximal value.")
 
         lower_bound = np.array(self.X.min()).tolist()
@@ -720,39 +716,37 @@ class MSDTransformer(TransformerMixin):
         m = X.shape[1]
 
         if X.isnull().values.any():
-           raise ValueError("Dataframe must not contain any none/nan values, but found at least one")
-        
-        if (len(self.weights) != m):
+            raise ValueError("Dataframe must not contain any none/nan values, but found at least one")
+
+        if self.n_criteria != m:
             raise ValueError("Invalid number of columns. Number of criteria must be the same as in previous dataframe.")
-        
+
         if not all(X.columns.values == self.X.columns.values):
             raise ValueError("New dataset must have the same columns as the dataset used to fit MSDTransformer")
-        
+
         lower_bound = np.array(X.min()).tolist()
         upper_bound = np.array(X.max()).tolist()
 
         for val, mini, maxi in zip(self.expert_range, lower_bound, upper_bound):
-            if not (val[0]<=mini and val[1]>=maxi):
-               raise ValueError("Invalid value at 'expert_range'. All values from original data must be in a range of expert_range.")
+            if not (val[0] <= mini and val[1] >= maxi):
+                raise ValueError("Invalid value at 'expert_range'. All values from original data must be in a range of expert_range.")
 
     def __check_show_ranking(self, first, last):
 
         if isinstance(first, int):
-           if first < 1 or first > len(self.X_new.index):
-              raise ValueError(f"Invalid value at 'first': must be in range [1:{len(self.X_new.index)}]")
+            if first < 1 or first > len(self.X_new.index):
+                raise ValueError(f"Invalid value at 'first': must be in range [1:{len(self.X_new.index)}]")
         else:
-           raise TypeError("Invalid type of 'first': must be an int")
-        
+            raise TypeError("Invalid type of 'first': must be an int")
+
         if isinstance(last, int):
-           if last < 1 or last > len(self.X_new.index):
-              raise ValueError(f"Invalid value at 'last': must be in range [1:{len(self.X_new.index)}]")
+            if last < 1 or last > len(self.X_new.index):
+                raise ValueError(f"Invalid value at 'last': must be in range [1:{len(self.X_new.index)}]")
         else:
-           raise TypeError("Invalid type of 'last': must be an int")
-        
+            raise TypeError("Invalid type of 'last': must be an int")
+
         if last < first:
-           raise ValueError("'first' must be not greater than 'last'")
-
-
+            raise ValueError("'first' must be not greater than 'last'")
 
     def __normalize_data(self, data):
         """normalize given data using either given expert range or min/max
@@ -787,18 +781,18 @@ class MSDTransformer(TransformerMixin):
 
     def __wmstd(self):
 
-      w = self.weights
-      s = np.sqrt(sum(w*w))/np.mean(w)
-      wm = []
-      wsd = []
-      for index, row in self.X_new.iterrows():
-        v = row * w
-        vw = (sum(v * w)/sum(w * w)) * w
-        wm.append(np.sqrt(sum(vw*vw))/s)
-        wsd.append(np.sqrt(sum((v-vw)*(v-vw)))/s)
+        w = self.weights
+        s = np.sqrt(sum(w * w)) / np.mean(w)
+        wm = []
+        wsd = []
+        for index, row in self.X_new.iterrows():
+            v = row * w
+            vw = (sum(v * w) / sum(w * w)) * w
+            wm.append(np.sqrt(sum(vw * vw)) / s)
+            wsd.append(np.sqrt(sum((v - vw) * (v - vw))) / s)
 
-      self.X_new['Mean'] = wm
-      self.X_new['Std'] = wsd
+        self.X_new['Mean'] = wm
+        self.X_new['Std'] = wsd
 
     def __ranking(self):
         """creates a ranking from the data based on topsis value column"""
@@ -852,8 +846,7 @@ class TOPSISAggregationFunction(ABC):
                     actual_aggfn = self.TOPSIS_calculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
             return pd.DataFrame([alternative_to_improve["Mean"] - m_start], columns=["Improvement rate"], index = ["Mean"])
 
-
-    def improvement_features(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, features_to_change, boundary_values = None, **kwargs):
+    def improvement_features(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, features_to_change, boundary_values=None, **kwargs):
         if boundary_values is None:
             boundary_values = np.ones(len(features_to_change))
         else:
@@ -864,13 +857,13 @@ class TOPSISAggregationFunction(ABC):
                 if boundary_values[i] < self.msd_transformer.expert_range[col][0] or boundary_values[i] > self.msd_transformer.expert_range[col][1]:
                     raise ValueError("Invalid value at 'boundary_values': must be between defined 'expert_range'")
                 else:
-                    boundary_values[i] = (boundary_values[i]-self.msd_transformer.expert_range[col][0])/(self.msd_transformer.expert_range[col][1]-self.msd_transformer.expert_range[col][0])
+                    boundary_values[i] = (boundary_values[i] - self.msd_transformer.expert_range[col][0]) / (self.msd_transformer.expert_range[col][1] - self.msd_transformer.expert_range[col][0])
                     if self.msd_transformer.objectives[col] == "min":
                         boundary_values[i] = 1 - boundary_values[i]
                     if alternative_to_improve[features_to_change[i]] > boundary_values[i]:
                         raise ValueError("Invalid value at 'boundary_values': must be better or equal to improving alternative values")
         AggFn = alternative_to_improve["AggFn"]
-        alternative_to_improve = alternative_to_improve.drop(labels = ["Mean", "Std", "AggFn"])
+        alternative_to_improve = alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"])
         improvement_start = alternative_to_improve.copy()
         feature_pointer = 0
         w = self.msd_transformer.weights
@@ -879,25 +872,25 @@ class TOPSISAggregationFunction(ABC):
 
         is_improvement_satisfactory = False
 
-        s = np.sqrt(sum(w*w))/np.mean(w)
-        for i,k in zip(features_to_change, boundary_values):
+        s = np.sqrt(sum(w * w)) / np.mean(w)
+        for i, k in zip(features_to_change, boundary_values):
             alternative_to_improve[i] = k
             v = alternative_to_improve * w
-            vw = (sum(v * w)/sum(w * w)) * w
-            mean = np.sqrt(sum(vw*vw))/s
-            std = np.sqrt(sum((v-vw)*(v-vw)))/s
+            vw = (sum(v * w) / sum(w * w)) * w
+            mean = np.sqrt(sum(vw * vw)) / s
+            std = np.sqrt(sum((v - vw) * (v - vw))) / s
             AggFn = self.TOPSIS_calculation(np.mean(w), mean, std)
 
             if AggFn < alternative_to_overcome["AggFn"]:
                 continue
 
-            alternative_to_improve[i] = 0.5*k
+            alternative_to_improve[i] = 0.5 * k
             v = alternative_to_improve * w
-            vw = (sum(v * w)/sum(w * w)) * w
-            mean = np.sqrt(sum(vw*vw))/s
-            std = np.sqrt(sum((v-vw)*(v-vw)))/s
+            vw = (sum(v * w) / sum(w * w)) * w
+            mean = np.sqrt(sum(vw * vw)) / s
+            std = np.sqrt(sum((v - vw) * (v - vw))) / s
             AggFn = self.TOPSIS_calculation(np.mean(w), mean, std)
-            change_ratio = 0.25*k
+            change_ratio = 0.25 * k
             while True:
                 if AggFn < alternative_to_overcome["AggFn"]:
                     alternative_to_improve[i] += change_ratio
@@ -906,24 +899,24 @@ class TOPSISAggregationFunction(ABC):
                 else:
                     is_improvement_satisfactory = True
                     break
-                change_ratio = change_ratio/2
+                change_ratio = change_ratio / 2
                 v = alternative_to_improve * w
-                vw = (sum(v * w)/sum(w * w)) * w
-                mean = np.sqrt(sum(vw*vw))/s
-                std = np.sqrt(sum((v-vw)*(v-vw)))/s
+                vw = (sum(v * w) / sum(w * w)) * w
+                mean = np.sqrt(sum(vw * vw)) / s
+                std = np.sqrt(sum((v - vw) * (v - vw))) / s
                 AggFn = self.TOPSIS_calculation(np.mean(w), mean, std)
 
             if is_improvement_satisfactory:
                 alternative_to_improve -= improvement_start
                 for j in range(len(alternative_to_improve)):
-                    if(alternative_to_improve[j] == 0):
+                    if alternative_to_improve[j] == 0:
                         continue
-                    elif (objectives[j] == "max"):
+                    elif objectives[j] == "max":
                         alternative_to_improve[j] = value_range[j] * alternative_to_improve[j]
                     else:
                         alternative_to_improve[j] = -value_range[j] * alternative_to_improve[j]
-          
-                return alternative_to_improve.to_frame(name = "Improvement rate")
+
+                return alternative_to_improve.to_frame(name="Improvement rate")
         else:
             return None
 
@@ -1175,13 +1168,13 @@ class ITOPSIS(TOPSISAggregationFunction):
                     actual_aggfn = self.TOPSIS_calculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
             return pd.DataFrame([alternative_to_improve["Std"] - std_start], columns=["Improvement rate"], index = ["Std"])
 
+
 class RTOPSIS(TOPSISAggregationFunction):
     def __init__(self, msd_transformer):
         super().__init__(msd_transformer)
 
     def TOPSIS_calculation(self, w, wm, wsd):
-
-        return np.sqrt(wm*wm + wsd*wsd)/(np.sqrt(wm*wm + wsd*wsd) + np.sqrt((w-wm) * (w-wm) + wsd*wsd))
+        return np.sqrt(wm * wm + wsd * wsd) / (np.sqrt(wm * wm + wsd * wsd) + np.sqrt((w - wm) * (w - wm) + wsd * wsd))
 
     def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, feature_to_change, **kwargs):
         """ Exact algorithm dedicated to the aggregation `R` for achieving the target by modifying the performance on a single criterion. """
@@ -1239,41 +1232,41 @@ class RTOPSIS(TOPSISAggregationFunction):
         w = np.mean(self.msd_transformer.weights)
         std_start = alternative_to_improve["Std"]
         sd_boundary = self.msd_transformer.max_std_calculator(alternative_to_improve["Mean"], self.msd_transformer.weights)
-        if (alternative_to_improve["Mean"]<w/2):
+        if (alternative_to_improve["Mean"] < w / 2):
             if self.TOPSIS_calculation(w, alternative_to_improve["Mean"], sd_boundary) < alternative_to_overcome["AggFn"]:
                 return None
             else:
-                change = (sd_boundary - alternative_to_improve["Std"])/2
+                change = (sd_boundary - alternative_to_improve["Std"]) / 2
                 actual_aggfn = self.TOPSIS_calculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
                 while True:
                     if actual_aggfn > alternative_to_overcome["AggFn"]:
                         if actual_aggfn - alternative_to_overcome["AggFn"] > improvement_ratio:
                             alternative_to_improve["Std"] -= change
-                            change = change/2
+                            change = change / 2
                             actual_aggfn = self.TOPSIS_calculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
                         else:
                             break
                     else:
                         alternative_to_improve["Std"] += change
-                        change = change/2
+                        change = change / 2
                         actual_aggfn = self.TOPSIS_calculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
-                return pd.DataFrame([alternative_to_improve["Std"] - std_start], columns=["Improvement rate"], index = ["Std"])
+                return pd.DataFrame([alternative_to_improve["Std"] - std_start], columns=["Improvement rate"], index=["Std"])
         else:
             if self.TOPSIS_calculation(w, alternative_to_improve["Mean"], 0) < alternative_to_overcome["AggFn"]:
                 return None
             else:
-                change = alternative_to_improve["Std"]/2
+                change = alternative_to_improve["Std"] / 2
                 actual_aggfn = self.TOPSIS_calculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
                 while True:
                     if actual_aggfn > alternative_to_overcome["AggFn"]:
                         if actual_aggfn - alternative_to_overcome["AggFn"] > improvement_ratio:
                             alternative_to_improve["Std"] += change
-                            change = change/2
+                            change = change / 2
                             actual_aggfn = self.TOPSIS_calculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
                         else:
                             break
                     else:
                         alternative_to_improve["Std"] -= change
-                        change = change/2
+                        change = change / 2
                         actual_aggfn = self.TOPSIS_calculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
-                return pd.DataFrame([alternative_to_improve["Std"] - std_start], columns=["Improvement rate"], index = ["Std"])
+                return pd.DataFrame([alternative_to_improve["Std"] - std_start], columns=["Improvement rate"], index=["Std"])
