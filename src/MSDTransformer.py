@@ -846,12 +846,12 @@ class TOPSISAggregationFunction(ABC):
                     actual_aggfn = self.TOPSIS_calculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
             return pd.DataFrame([alternative_to_improve["Mean"] - m_start], columns=["Improvement rate"], index = ["Mean"])
 
-    def improvement_features(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, features_to_change, boundary_values=None, **kwargs):
+    def __check_boundary_values(self, alternative_to_improve, features_to_change, boundary_values):
         if boundary_values is None:
             boundary_values = np.ones(len(features_to_change))
         else:
             if len(features_to_change) != len(boundary_values):
-                raise ValueError("Invalid value at 'boundary_values': must be same lenght as 'features_to_change'")
+                raise ValueError("Invalid value at 'boundary_values': must be same length as 'features_to_change'")
             for i in range(len(features_to_change)):
                 col = self.msd_transformer.X_new.columns.get_loc(features_to_change[i])
                 if boundary_values[i] < self.msd_transformer.expert_range[col][0] or boundary_values[i] > self.msd_transformer.expert_range[col][1]:
@@ -862,6 +862,11 @@ class TOPSISAggregationFunction(ABC):
                         boundary_values[i] = 1 - boundary_values[i]
                     if alternative_to_improve[features_to_change[i]] > boundary_values[i]:
                         raise ValueError("Invalid value at 'boundary_values': must be better or equal to improving alternative values")
+        return np.array(boundary_values)
+    
+    def improvement_features(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, features_to_change, boundary_values=None, **kwargs):
+        boundary_values = self.__check_boundary_values(alternative_to_improve, features_to_change, boundary_values)
+        
         AggFn = alternative_to_improve["AggFn"]
         alternative_to_improve = alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"])
         improvement_start = alternative_to_improve.copy()
@@ -920,19 +925,36 @@ class TOPSISAggregationFunction(ABC):
         else:
             return None
 
-    def improvement_genetic(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, features_to_change, popsize=100, n_generations=100):
+    def improvement_genetic(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, features_to_change, boundary_values=None, allow_deterioration=False, popsize=None, n_generations=200):
+        boundary_values = self.__check_boundary_values(alternative_to_improve, features_to_change, boundary_values)
+
         current_performances_US = alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).to_numpy().copy()
         modified_criteria_subset = [x in features_to_change for x in self.msd_transformer.X.columns.tolist()]
 
-        # TODO check if the goal is achievable with a subset of criteria before running genetic algorithm
+        max_possible_improved = current_performances_US.copy()
+        max_possible_improved[modified_criteria_subset] = boundary_values
+        w_means, w_stds = self.msd_transformer.transform_US_to_wmsd(np.array([max_possible_improved]))
+        max_possible_agg_value = self.TOPSIS_calculation(np.mean(self.msd_transformer.weights), w_means, w_stds).item()
+        if max_possible_agg_value < alternative_to_overcome["AggFn"]:
+            # print(f"Not possible to achieve target {alternative_to_overcome['AggFn']} with specified features and boundary_values. Max possible agg value is {max_possible_agg_value}")
+            return None
 
         problem = PostFactumTopsisPymoo(
             topsis_model=self.msd_transformer,
             modified_criteria_subset=modified_criteria_subset,
             current_performances=current_performances_US,
-            target_agg_value=alternative_to_overcome["AggFn"])
+            target_agg_value=alternative_to_overcome["AggFn"],
+            upper_bounds=boundary_values,
+            allow_deterioration=allow_deterioration)
 
-        # TODO make other NSGA2 parameters adjustable by user
+        if popsize is None:
+            popsize_by_n_objectives = {
+                2: 150,
+                3: 500,
+                4: 1000
+            }
+            popsize = popsize_by_n_objectives.get(len(features_to_change), 2000)
+
         algorithm = NSGA2(pop_size=popsize,
                           crossover=SBX(eta=15, prob=0.9),
                           mutation=PM(eta=20),
@@ -984,7 +1006,7 @@ class TOPSISAggregationFunction(ABC):
 
 
 class PostFactumTopsisPymoo(Problem):
-    def __init__(self, topsis_model, modified_criteria_subset, current_performances, target_agg_value):
+    def __init__(self, topsis_model, modified_criteria_subset, current_performances, target_agg_value, upper_bounds, allow_deterioration=False):
         n_criteria = np.array(modified_criteria_subset).astype(bool).sum()
         super().__init__(n_var=n_criteria, n_obj=n_criteria, n_ieq_constr=1, vtype=float)
 
@@ -995,9 +1017,8 @@ class PostFactumTopsisPymoo(Problem):
         self.target_agg_value = target_agg_value
 
         # Lower and upper bounds in Utility Space
-        self.xl = np.zeros(n_criteria)
-        self.xu = np.ones(n_criteria)
-        # TODO lower and upper bounds passed as arguments by user
+        self.xl = np.zeros(n_criteria) if allow_deterioration else self.current_performances[self.modified_criteria_subset]
+        self.xu = upper_bounds
 
     def _evaluate(self, x, out, *args, **kwargs):
         # In Utility Space variables and objectives are the same values
