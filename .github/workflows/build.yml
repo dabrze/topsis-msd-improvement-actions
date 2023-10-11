@@ -13,9 +13,13 @@ jobs:
         with:
           python-version: '3.9' # install the python version needed
 
+      - name: add SCIP PPA
+        run: |
+          sudo add-apt-repository ppa:scipopts/ppa
+          sudo apt-get update
+
       - name: install SCIP Optimization Suite and development packages
         run: |
-          sudo apt-get update
           sudo apt-get install -y scipoptsuite scipoptsuite-dev
           
       - name: install python packages
