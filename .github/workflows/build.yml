@@ -13,14 +13,18 @@ jobs:
         with:
           python-version: '3.9' # install the python version needed
 
-      - name: add SCIP PPA
+      - name: install build dependencies
         run: |
-          sudo add-apt-repository ppa:scipopts/ppa
           sudo apt-get update
-
-      - name: install SCIP Optimization Suite and development packages
+          sudo apt-get install -y build-essential cmake git gfortran
+          
+      - name: download and build SCIP Optimization Suite
         run: |
-          sudo apt-get install -y scipoptsuite scipoptsuite-dev
+          git clone --recursive https://github.com/SCIP-Interfaces/PySCIPOpt-Depends.git
+          cd PySCIPOpt-Depends
+          make
+          sudo make install
+          cd ..
           
       - name: install python packages
         run: |
