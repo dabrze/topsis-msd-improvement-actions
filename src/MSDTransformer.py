@@ -699,6 +699,8 @@ class TOPSISAggregationFunction(ABC):
         pass
 
     def improvement_mean(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, **kwargs):
+        if alternative_to_improve["AggFn"] >= alternative_to_overcome["AggFn"]:
+            raise ValueError("Invalid value at 'alternatie_to_improve': must be worse than alternative_to_overcome'")
 
         w = np.mean(self.msd_transformer.weights)
         m_start = alternative_to_improve["Mean"]
@@ -741,6 +743,8 @@ class TOPSISAggregationFunction(ABC):
         return np.array(boundary_values)
     
     def improvement_features(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, features_to_change, boundary_values=None, **kwargs):
+        if alternative_to_improve["AggFn"] >= alternative_to_overcome["AggFn"]:
+            raise ValueError("Invalid value at 'alternatie_to_improve': must be worse than alternative_to_overcome'")
         boundary_values = self.__check_boundary_values(alternative_to_improve, features_to_change, boundary_values)
         
         AggFn = alternative_to_improve["AggFn"]
@@ -756,20 +760,14 @@ class TOPSISAggregationFunction(ABC):
         s = np.sqrt(sum(w * w)) / np.mean(w)
         for i, k in zip(features_to_change, boundary_values):
             alternative_to_improve[i] = k
-            v = alternative_to_improve * w
-            vw = (sum(v * w) / sum(w * w)) * w
-            mean = np.sqrt(sum(vw * vw)) / s
-            std = np.sqrt(sum((v - vw) * (v - vw))) / s
+            mean, std = self.msd_transformer.transform_US_to_wmsd([alternative_to_improve])
             AggFn = self.TOPSIS_calculation(np.mean(w), mean, std)
 
             if AggFn < alternative_to_overcome["AggFn"]:
                 continue
 
             alternative_to_improve[i] = 0.5 * k
-            v = alternative_to_improve * w
-            vw = (sum(v * w) / sum(w * w)) * w
-            mean = np.sqrt(sum(vw * vw)) / s
-            std = np.sqrt(sum((v - vw) * (v - vw))) / s
+            mean, std = self.msd_transformer.transform_US_to_wmsd([alternative_to_improve])
             AggFn = self.TOPSIS_calculation(np.mean(w), mean, std)
             change_ratio = 0.25 * k
             while True:
@@ -781,10 +779,7 @@ class TOPSISAggregationFunction(ABC):
                     is_improvement_satisfactory = True
                     break
                 change_ratio = change_ratio / 2
-                v = alternative_to_improve * w
-                vw = (sum(v * w) / sum(w * w)) * w
-                mean = np.sqrt(sum(vw * vw)) / s
-                std = np.sqrt(sum((v - vw) * (v - vw))) / s
+                mean, std = self.msd_transformer.transform_US_to_wmsd([alternative_to_improve])
                 AggFn = self.TOPSIS_calculation(np.mean(w), mean, std)
 
             if is_improvement_satisfactory:
@@ -964,6 +959,8 @@ class ATOPSIS(TOPSISAggregationFunction):
                 return result_df
 
     def improvement_std(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, **kwargs):
+        if alternative_to_improve["AggFn"] >= alternative_to_overcome["AggFn"]:
+            raise ValueError("Invalid value at 'alternatie_to_improve': must be worse than alternative_to_overcome'")
 
         w = np.mean(self.msd_transformer.weights)
         std_start = alternative_to_improve["Std"]
@@ -1042,6 +1039,8 @@ class ITOPSIS(TOPSISAggregationFunction):
                 return result_df
 
     def improvement_std(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, **kwargs):
+        if alternative_to_improve["AggFn"] >= alternative_to_overcome["AggFn"]:
+            raise ValueError("Invalid value at 'alternatie_to_improve': must be worse than alternative_to_overcome'")
 
         w = np.mean(self.msd_transformer.weights)
         std_start = alternative_to_improve["Std"]
@@ -1125,6 +1124,8 @@ class RTOPSIS(TOPSISAggregationFunction):
             return result_df
 
     def improvement_std(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, **kwargs):
+        if alternative_to_improve["AggFn"] >= alternative_to_overcome["AggFn"]:
+            raise ValueError("Invalid value at 'alternatie_to_improve': must be worse than alternative_to_overcome'")
 
         w = np.mean(self.msd_transformer.weights)
         std_start = alternative_to_improve["Std"]
