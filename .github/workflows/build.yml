@@ -13,18 +13,14 @@ jobs:
         with:
           python-version: '3.9' # install the python version needed
 
-      - name: install build dependencies
+      - name: install SCIP
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake git gfortran
-          
-      - name: download and build SCIP Optimization Suite
-        run: |
-          git clone --recursive https://github.com/SCIP-Interfaces/PySCIPOpt-Depends.git
-          cd PySCIPOpt-Depends
-          make
-          sudo make install
-          cd ..
+          sudo apt-get install -y bison flex cmake g++ zlib1g-dev libgmp-dev libreadline-dev libncurses5-dev libx11-dev libblas-dev liblapack-dev
+          git clone https://github.com/SCIP-Interfaces/PySCIPOpt.git
+          cd PySCIPOpt
+          python setup.py install
+        working-directory: ${{ github.workspace }}
           
       - name: install python packages
         run: |
