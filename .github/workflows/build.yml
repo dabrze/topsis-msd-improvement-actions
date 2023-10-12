@@ -13,10 +13,11 @@ jobs:
         with:
           python-version: '3.9' # install the python version needed
 
-      - name: install SCIP
+      - name: install SCIP and Cython
         run: |
           sudo apt-get update
-          sudo apt-get install -y bison flex cmake g++ zlib1g-dev libgmp-dev libreadline-dev libncurses5-dev libx11-dev libblas-dev liblapack-dev
+          sudo apt-get install -y bison flex cmake g++ zlib1g-dev libgmp-dev libreadline-dev libncurses5-dev libx11-dev libblas-dev liblapack-dev cython
+          export SCIPOPTDIR=/path/to/your/scip
           git clone https://github.com/SCIP-Interfaces/PySCIPOpt.git
           cd PySCIPOpt
           python setup.py install
