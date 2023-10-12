@@ -303,34 +303,45 @@ class MSDTransformer(TransformerMixin):
                     showarrow=False,
                     font=dict(size=12)
                 )
-
-        fig.show()
         fig.write_image("plot.png")
-        return None
+        return fig
 
-    def update_for_plot(self, student_id, changes):
-        changes = changes['Improvement rate']
-        changes2 = self.X.loc[student_id] + changes
-        new_row = pd.Series(changes2, name='NEW ' + student_id)
-        self.X_newPoint = self.X.copy()
-        self.X_newPoint = self.X_newPoint.append(new_row)
-        self.X_newPoint = self.__normalize_data(self.X_newPoint)
-        w_means, w_stds = self.transform_US_to_wmsd(np.array(self.X_newPoint))
-        agg_values = self.agg_fn.TOPSIS_calculation(np.mean(self.weights), w_means, w_stds)
-        self.X_newPoint['Mean'] = w_means
-        self.X_newPoint['Std'] = w_stds
-        self.X_newPoint['AggFn'] = agg_values
+    def update_for_plot(self, id, changes, change_number):
+        if 'Mean' in changes.columns:
+            self.X_newPoint = self.X_new.copy()
+            self.X_newPoint.loc['NEW ' + id] = self.X_newPoint.loc[id]
+            self.X_newPoint.loc['NEW ' + id, "Mean"] += changes["Mean"].values[0]
+            agg_value = self.agg_fn.TOPSIS_calculation(np.mean(self.weights), self.X_newPoint.loc['NEW ' + id, "Mean"], self.X_newPoint.loc['NEW ' + id, "Std"])
+            self.X_newPoint.loc['NEW ' + id, "AggFn"] = agg_value
+        elif 'Std' in changes.columns:
+            self.X_newPoint = self.X_new.copy()
+            self.X_newPoint.loc['NEW ' + id] = self.X_newPoint.loc[id]
+            self.X_newPoint.loc['NEW ' + id, "Std"] += changes["Std"].values[0]
+            agg_value = self.agg_fn.TOPSIS_calculation(np.mean(self.weights), self.X_newPoint.loc['NEW ' + id, "Mean"], self.X_newPoint.loc['NEW ' + id, "Std"])
+            self.X_newPoint.loc['NEW ' + id, "AggFn"] = agg_value
+        else:
+            row_to_add = changes.iloc[change_number]
+            result = self.X.loc[id].add(row_to_add, fill_value=0)
+            new_row = pd.Series(result, name='NEW ' + id)
+            self.X_newPoint = self.X.copy()
+            self.X_newPoint = self.X_newPoint.append(new_row)
+            self.X_newPoint = self.__normalize_data(self.X_newPoint)
+            w_means, w_stds = self.transform_US_to_wmsd(np.array(self.X_newPoint))
+            agg_values = self.agg_fn.TOPSIS_calculation(np.mean(self.weights), w_means, w_stds)
+            self.X_newPoint['Mean'] = w_means
+            self.X_newPoint['Std'] = w_stds
+            self.X_newPoint['AggFn'] = agg_values
         return self.X_newPoint
 
-    def plot2(self, student_id, changes, show_names=False):
-        self.update_for_plot(student_id, changes)
-        old_rank = self.X_new.sort_values(by='AggFn', ascending=False).index.get_loc(student_id) + 1
+    def plot2(self, id, changes, show_names=False, change_number=0):
+        self.update_for_plot(id, changes, change_number)
+        old_rank = self.X_new.sort_values(by='AggFn', ascending=False).index.get_loc(id) + 1
         fig = self.plot_background
 
         ### add old point
         fig.add_trace(go.Scatter(
-            x=[self.X_new.loc[student_id, 'Mean']],
-            y=[self.X_new.loc[student_id, 'Std']],
+            x=[self.X_new.loc[id, 'Mean']],
+            y=[self.X_new.loc[id, 'Std']],
             showlegend=False,
             mode='markers',
             marker=dict(
@@ -338,7 +349,7 @@ class MSDTransformer(TransformerMixin):
                 size=10
             ),
             customdata=[old_rank],
-            text=['OLD ' + student_id],
+            text=['OLD ' + id],
             hovertemplate='<b>ID</b>: %{text}<br>' + 
                           '<b>Old Rank</b>: %{customdata:f}<br>' +
                           '<b>New Rank</b>: -<br>' +
@@ -347,16 +358,16 @@ class MSDTransformer(TransformerMixin):
         ### add name for old point
         if show_names == True:
             fig.add_annotation(
-                x=self.X_new.loc[student_id, 'Mean'] + 0.01,
-                y=self.X_new.loc[student_id, 'Std'] + 0.01,
-                text='OLD ' + student_id,
+                x=self.X_new.loc[id, 'Mean'] + 0.01,
+                y=self.X_new.loc[id, 'Std'] + 0.01,
+                text='OLD ' + id,
                 showarrow=False,
                 font=dict(size=12)
             )
 
-        self.X_newPoint = self.X_newPoint.drop(index=(student_id))
+        self.X_newPoint = self.X_newPoint.drop(index=(id))
         self.X_newPoint = self.X_newPoint.sort_values(by='AggFn', ascending=False)
-        new_rank = self.X_newPoint.index.get_loc('NEW ' + student_id) + 1
+        new_rank = self.X_newPoint.index.get_loc('NEW ' + id) + 1
         
         numbers = [i for i in range(1, self.n+1)]
         custom0 = numbers.copy()
@@ -366,8 +377,8 @@ class MSDTransformer(TransformerMixin):
         
         ### add new point
         fig.add_trace(go.Scatter(
-            x=[self.X_newPoint.loc['NEW ' + student_id, 'Mean']],
-            y=[self.X_newPoint.loc['NEW ' + student_id, 'Std']],
+            x=[self.X_newPoint.loc['NEW ' + id, 'Mean']],
+            y=[self.X_newPoint.loc['NEW ' + id, 'Std']],
             showlegend = False,
             mode='markers',
             marker=dict(
@@ -375,7 +386,7 @@ class MSDTransformer(TransformerMixin):
                 size=10
             ),
             customdata=[new_rank],
-            text=['NEW ' + student_id],
+            text=['NEW ' + id],
             hovertemplate='<b>ID</b>: %{text}<br>' + 
                           '<b>Old Rank</b>: -<br>' +
                           '<b>New Rank</b>: %{customdata:f}<br>' +
@@ -394,14 +405,14 @@ class MSDTransformer(TransformerMixin):
         ### add line between old point and new point
         fig.add_shape(
             type='line',
-            x0=self.X_new.loc[student_id, 'Mean'],
-            y0=self.X_new.loc[student_id, 'Std'],
-            x1=self.X_newPoint.loc['NEW ' + student_id, 'Mean'],
-            y1=self.X_newPoint.loc['NEW ' + student_id, 'Std'],
+            x0=self.X_new.loc[id, 'Mean'],
+            y0=self.X_new.loc[id, 'Std'],
+            x1=self.X_newPoint.loc['NEW ' + id, 'Mean'],
+            y1=self.X_newPoint.loc['NEW ' + id, 'Std'],
             line=dict(color='white', width=2),
         )
 
-        self.X_newPoint = self.X_newPoint.drop(index=('NEW ' + student_id))
+        self.X_newPoint = self.X_newPoint.drop(index=('NEW ' + id))
 
         ### add other points
         fig.add_trace(go.Scatter(
@@ -420,10 +431,9 @@ class MSDTransformer(TransformerMixin):
                           '<b>New Rank</b>: %{customdata[1]:f}<br>' +
                           '<extra></extra>'
         ))
-
-        fig.show()
         fig.write_image("plot2.png")
-        return None
+        return fig
+
 
     def show_ranking(self, mode=None, first=1, last=None):
 
@@ -722,7 +732,7 @@ class TOPSISAggregationFunction(ABC):
                     alternative_to_improve["Mean"] += change
                     change = change/2
                     actual_aggfn = self.TOPSIS_calculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
-            return pd.DataFrame([alternative_to_improve["Mean"] - m_start], columns=["Improvement rate"], index = ["Mean"])
+            return pd.DataFrame([alternative_to_improve["Mean"] - m_start], columns=["Mean"])
 
     def __check_boundary_values(self, alternative_to_improve, features_to_change, boundary_values):
         if boundary_values is None:
@@ -791,8 +801,9 @@ class TOPSISAggregationFunction(ABC):
                         alternative_to_improve[j] = value_range[j] * alternative_to_improve[j]
                     else:
                         alternative_to_improve[j] = -value_range[j] * alternative_to_improve[j]
-
-                return alternative_to_improve.to_frame(name="Improvement rate")
+                result_df = alternative_to_improve.to_frame().transpose()
+                result_df = result_df.reset_index(drop=True)
+                return result_df
         else:
             return None
 
@@ -982,7 +993,7 @@ class ATOPSIS(TOPSISAggregationFunction):
                     alternative_to_improve["Std"] += change
                     change = change/2
                     actual_aggfn = self.TOPSIS_calculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
-            return pd.DataFrame([alternative_to_improve["Std"] - std_start], columns=["Improvement rate"], index = ["Std"])
+            return pd.DataFrame([alternative_to_improve["Std"] - std_start], columns=["Std"])
 
 
 class ITOPSIS(TOPSISAggregationFunction):
@@ -1062,7 +1073,7 @@ class ITOPSIS(TOPSISAggregationFunction):
                     alternative_to_improve["Std"] -= change
                     change = change/2
                     actual_aggfn = self.TOPSIS_calculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
-            return pd.DataFrame([alternative_to_improve["Std"] - std_start], columns=["Improvement rate"], index = ["Std"])
+            return pd.DataFrame([alternative_to_improve["Std"] - std_start], columns=["Std"])
 
 
 class RTOPSIS(TOPSISAggregationFunction):
@@ -1167,4 +1178,4 @@ class RTOPSIS(TOPSISAggregationFunction):
                         alternative_to_improve["Std"] -= change
                         change = change / 2
                         actual_aggfn = self.TOPSIS_calculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
-                return pd.DataFrame([alternative_to_improve["Std"] - std_start], columns=["Improvement rate"], index=["Std"])
+                return pd.DataFrame([alternative_to_improve["Std"] - std_start], columns=["Std"])
