@@ -126,7 +126,7 @@ class MSDTransformer(TransformerMixin):
         # print(f"Result shape {filtered_points.shape}")
         return pd.DataFrame(filtered_points, columns=self.X.columns)
 
-    def improvement(self, function_name, alternative_to_improve, alternative_to_overcome, improvement_ratio=0.01, **kwargs):
+    def improvement(self, function_name, alternative_to_improve, alternative_to_overcome, improvement_ratio=0.000001, **kwargs):
 
         if type(alternative_to_improve) == int:
             alternative_to_improve = self.X_new.loc[self.ranked_alternatives[alternative_to_improve]].copy()
@@ -721,7 +721,7 @@ class TOPSISAggregationFunction(ABC):
             change = (m_boundary - alternative_to_improve["Mean"])/2
             actual_aggfn = self.TOPSIS_calculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
             while True:
-                if actual_aggfn > alternative_to_overcome["AggFn"]:
+                if actual_aggfn >= alternative_to_overcome["AggFn"]:
                     if actual_aggfn - alternative_to_overcome["AggFn"] > improvement_ratio:
                         alternative_to_improve["Mean"] -= change
                         change = change/2
@@ -730,9 +730,17 @@ class TOPSISAggregationFunction(ABC):
                         break
                 else:
                     alternative_to_improve["Mean"] += change
-                    change = change/2
                     actual_aggfn = self.TOPSIS_calculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
-            return pd.DataFrame([alternative_to_improve["Mean"] - m_start], columns=["Mean"])
+                    ifactual_aggFn >= alternative_to_overcome["AggFn"]:
+                        change = change/2
+            if alternative_to_improve["Std"] <= self.msd_transformer.max_std_calculator(alternative_to_improve["Mean"], self.msd_transformer.weights):
+                return pd.DataFrame([alternative_to_improve["Mean"] - m_start], columns=["Mean"])
+            else:
+                while alternative_to_improve["Mean"] <=1:
+                    if alternative_to_improve["Std"] <= self.msd_transformer.max_std_calculator(alternative_to_improve["Mean"], self.msd_transformer.weights):
+                        return pd.DataFrame([alternative_to_improve["Mean"] - m_start], columns=["Mean"])
+                    alternative_to_improve["Mean"] += improvement_ratio
+                return None
 
     def __check_boundary_values(self, alternative_to_improve, features_to_change, boundary_values):
         if boundary_values is None:
