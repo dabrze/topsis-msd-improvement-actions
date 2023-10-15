@@ -272,6 +272,7 @@ class MSDTransformer(TransformerMixin):
         ))
 
         self.plot_background = go.Figure(fig)
+        values = self.X_new['AggFn'].to_list()
 
         ### plot the ranked data
         custom = []
@@ -287,10 +288,11 @@ class MSDTransformer(TransformerMixin):
                 color='black',
                 size=10
             ),
-            customdata=custom,
+            customdata=np.stack((custom, values), axis=1),
             text=self.X_new.index.values,
             hovertemplate='<b>ID</b>: %{text}<br>' + 
-                          '<b>Rank</b>: %{customdata:f}<br>' +
+                          '<b>Rank</b>: %{customdata[0]:f}<br>' +
+                          '<b>AggFn</b>: %{customdata[1]:f}<br>' +
                           '<extra></extra>'
         ))
         ### add names
@@ -303,7 +305,6 @@ class MSDTransformer(TransformerMixin):
                     showarrow=False,
                     font=dict(size=12)
                 )
-        fig.write_image("plot.png")
         return fig
 
     def update_for_plot(self, id, changes, change_number):
@@ -336,6 +337,7 @@ class MSDTransformer(TransformerMixin):
     def plot2(self, id, changes, show_names=False, change_number=0):
         self.update_for_plot(id, changes, change_number)
         old_rank = self.X_new.sort_values(by='AggFn', ascending=False).index.get_loc(id) + 1
+        old_value = self.X_new.loc[id, 'AggFn']
         fig = self.plot_background
 
         ### add old point
@@ -348,11 +350,12 @@ class MSDTransformer(TransformerMixin):
                 color='white',
                 size=10
             ),
-            customdata=[old_rank],
+            customdata=np.stack(([old_rank], [old_value]), axis=1),
             text=['OLD ' + id],
             hovertemplate='<b>ID</b>: %{text}<br>' + 
-                          '<b>Old Rank</b>: %{customdata:f}<br>' +
+                          '<b>Old Rank</b>: %{customdata[0]:f}<br>' +
                           '<b>New Rank</b>: -<br>' +
+                          '<b>AggFn</b>: %{customdata[1]:f}<br>' +
                           '<extra></extra>'
         ))
         ### add name for old point
@@ -368,12 +371,14 @@ class MSDTransformer(TransformerMixin):
         self.X_newPoint = self.X_newPoint.drop(index=(id))
         self.X_newPoint = self.X_newPoint.sort_values(by='AggFn', ascending=False)
         new_rank = self.X_newPoint.index.get_loc('NEW ' + id) + 1
+        new_value = self.X_newPoint.loc['NEW ' + id, 'AggFn']
         
         numbers = [i for i in range(1, self.n+1)]
         custom0 = numbers.copy()
         custom0.remove(old_rank)
         custom1 = numbers.copy()
         custom1.remove(new_rank)
+
         
         ### add new point
         fig.add_trace(go.Scatter(
@@ -385,11 +390,12 @@ class MSDTransformer(TransformerMixin):
                 color='white',
                 size=10
             ),
-            customdata=[new_rank],
+            customdata=np.stack(([new_rank], [new_value]), axis=1),
             text=['NEW ' + id],
             hovertemplate='<b>ID</b>: %{text}<br>' + 
                           '<b>Old Rank</b>: -<br>' +
-                          '<b>New Rank</b>: %{customdata:f}<br>' +
+                          '<b>New Rank</b>: %{customdata[0]:f}<br>' +
+                          '<b>AggFn</b>: %{customdata[1]:f}<br>' +
                           '<extra></extra>'
         ))
         ### add names for new point and other points
@@ -411,8 +417,8 @@ class MSDTransformer(TransformerMixin):
             y1=self.X_newPoint.loc['NEW ' + id, 'Std'],
             line=dict(color='white', width=2),
         )
-
         self.X_newPoint = self.X_newPoint.drop(index=('NEW ' + id))
+        values = self.X_newPoint['AggFn'].to_list()
 
         ### add other points
         fig.add_trace(go.Scatter(
@@ -424,14 +430,14 @@ class MSDTransformer(TransformerMixin):
                 color='black',
                 size=10
             ),
-            customdata=np.stack((custom0, custom1), axis=1),
+            customdata=np.stack((custom0, custom1, values), axis=1),
             text=self.X_newPoint.index.values,
             hovertemplate='<b>ID</b>: %{text}<br>' + 
                           '<b>Old Rank</b>: %{customdata[0]:f}<br>' +
                           '<b>New Rank</b>: %{customdata[1]:f}<br>' +
+                          '<b>AggFn</b>: %{customdata[2]:f}<br>' +
                           '<extra></extra>'
         ))
-        fig.write_image("plot2.png")
         return fig
 
 
@@ -731,7 +737,7 @@ class TOPSISAggregationFunction(ABC):
                 else:
                     alternative_to_improve["Mean"] += change
                     actual_aggfn = self.TOPSIS_calculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
-                    ifactual_aggFn >= alternative_to_overcome["AggFn"]:
+                    if actual_aggfn >= alternative_to_overcome["AggFn"]:
                         change = change/2
             if alternative_to_improve["Std"] <= self.msd_transformer.max_std_calculator(alternative_to_improve["Mean"], self.msd_transformer.weights):
                 return pd.DataFrame([alternative_to_improve["Mean"] - m_start], columns=["Mean"])
