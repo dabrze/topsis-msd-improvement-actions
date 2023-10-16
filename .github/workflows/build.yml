@@ -18,10 +18,22 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           
-      - name: execute py script # run MSDTransformer.py
-        env:
-          SOME_SECRET: ${{ secrets.SOME_SECRET }}
-        run: python src/MSDTransformer.py
+      - name: install module
+        run: |
+          pip install .
+        working-directory: src
+
+      - name: install Cython
+        run: pip install cython
+
+      - name: Install SCIP
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bison flex cmake g++ zlib1g-dev libgmp-dev libreadline-dev libncurses5-dev libx11-dev libblas-dev liblapack-dev
+          git clone https://github.com/SCIP-Interfaces/PySCIPOpt.git
+          cd PySCIPOpt
+          python setup.py install
+        working-directory: ${{ github.workspace }}
         
       - name: run unit tests
         run: python -m pytest --import-mode=append tests/
