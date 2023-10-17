@@ -942,7 +942,7 @@ class ATOPSIS(TOPSISAggregationFunction):
         performances_US = alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).to_numpy().copy()
         performances_CS = performances_US * self.msd_transformer.value_range + self.msd_transformer.lower_bounds
         weights = self.msd_transformer.weights
-        target_agg_value = alternative_to_overcome["AggFn"] * np.linalg.norm(weights)
+        target_agg_value = (alternative_to_overcome["AggFn"] + improvement_ratio / 2) * np.linalg.norm(weights)
 
         modified_criterion_idx = list(alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).index).index(feature_to_change)
         criterion_range = self.msd_transformer.value_range[modified_criterion_idx]
@@ -1022,7 +1022,7 @@ class ITOPSIS(TOPSISAggregationFunction):
         performances_US = alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).to_numpy().copy()
         performances_CS = performances_US * self.msd_transformer.value_range + self.msd_transformer.lower_bounds
         weights = self.msd_transformer.weights
-        target_agg_value = (1 - alternative_to_overcome["AggFn"]) * np.linalg.norm(weights)
+        target_agg_value = (1 - (alternative_to_overcome["AggFn"] + improvement_ratio / 2)) * np.linalg.norm(weights)
 
         modified_criterion_idx = list(alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).index).index(feature_to_change)
         criterion_range = self.msd_transformer.value_range[modified_criterion_idx]
@@ -1102,7 +1102,7 @@ class RTOPSIS(TOPSISAggregationFunction):
         performances_US = alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).to_numpy().copy()
         performances_CS = performances_US * self.msd_transformer.value_range + self.msd_transformer.lower_bounds
         weights = self.msd_transformer.weights
-        target_agg_value = alternative_to_overcome["AggFn"]
+        target_agg_value = alternative_to_overcome["AggFn"] + improvement_ratio / 2
 
         modified_criterion_idx = list(alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).index).index(feature_to_change)
         criterion_range = self.msd_transformer.value_range[modified_criterion_idx]
