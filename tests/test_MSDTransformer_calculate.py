@@ -7,43 +7,37 @@ def test_calculate_copy(df):
     objectives = ['max','max','min','max','min','min','min','max']
     agg_function = msdt.ITOPSIS
     buses = msdt.MSDTransformer(agg_function)
-    buses.fit(df, weights=None, objectives=objectives, expert_range=None)
-    buses.transform(df)
+    buses.fit_transform(df, weights=None, objectives=objectives, expert_range=None)
     assert df.equals(buses.X)
 
 def test_calculate_multipleTransform(df):
     objectives = ['max','max','min','max','min','min','min','max']
     agg_function = msdt.ITOPSIS
     buses = msdt.MSDTransformer(agg_function)
-    buses.fit(df, weights=None, objectives=objectives, expert_range=None)
-    buses.transform(df)
+    buses.fit_transform(df, weights=None, objectives=objectives, expert_range=None)
     b1 = buses.X_new
-    buses.transform(df)
-    b2 = buses.X_new
-    assert b1.equals(b2)
+    b2 = buses.transform(df)
+    assert np.allclose(b1, b2, rtol=1e-5)
 
 def test_calculate_ranking(df):
     objectives = ['max','max','min','max','min','min','min','max']
     agg_function = msdt.ITOPSIS
     buses = msdt.MSDTransformer(agg_function)
-    buses.fit(df, weights=None, objectives=objectives, expert_range=None)
-    buses.transform(df)
+    buses.fit_transform(df, weights=None, objectives=objectives, expert_range=None)
     assert buses.ranked_alternatives == ['b24', 'b26', 'b07', 'b16', 'b18', 'b25', 'b04', 'b01', 'b28', 'b09', 'b02', 'b13', 'b11', 'b32', 'b21', 'b12', 'b27', 'b17', 'b06', 'b29', 'b20', 'b14', 'b23', 'b19', 'b03', 'b30', 'b08', 'b22', 'b15', 'b10', 'b31', 'b05']
 
 def test_calculate_normWeigths(df):
     objectives = ['max','max','min','max','min','min','min','max']
     agg_function = msdt.ITOPSIS
     buses = msdt.MSDTransformer(agg_function)
-    buses.fit(df, weights=None, objectives=objectives, expert_range=None)
-    buses.transform(df)
+    buses.fit_transform(df, weights=None, objectives=objectives, expert_range=None)
     assert (buses.weights.all() <= 1 and buses.weights.all() >= 0)
 
 def test_calculate_normData(df):
     objectives = ['max','max','min','max','min','min','min','max']
     agg_function = msdt.ITOPSIS
     buses = msdt.MSDTransformer(agg_function)
-    buses.fit(df, weights=None, objectives=objectives, expert_range=None)
-    buses.transform(df)
+    buses.fit_transform(df, weights=None, objectives=objectives, expert_range=None)
     assert (buses.X_new.all().all() <= 1 and buses.X_new.all().all() >= 0)
     
 @pytest.mark.parametrize("col_name, agg_function, expected", [('Mean', msdt.ITOPSIS, [0.8471063335888918, 0.7768981460905122, 0.49858239165620366, 0.8586295634766312, 0.18392857142857144]),
@@ -54,8 +48,7 @@ def test_calculate_normData(df):
 def test_calculate_values(col_name, agg_function, expected, df):
     objectives = ['max','max','min','max','min','min','min','max']
     buses = msdt.MSDTransformer(agg_function)
-    buses.fit(df, weights=None, objectives=objectives, expert_range=None)
-    buses.transform(df)
+    buses.fit_transform(df, weights=None, objectives=objectives, expert_range=None)
     result = buses.X_new[col_name][:5].to_numpy()
     assert result == pytest.approx(expected, abs=1e-3)
     

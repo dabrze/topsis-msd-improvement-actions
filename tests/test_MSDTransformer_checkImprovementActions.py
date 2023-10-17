@@ -15,14 +15,17 @@ def test_checkImprovedSign(df):
         "HorsePower" : "max"}
     agg_function = msdt.ITOPSIS
     buses = msdt.MSDTransformer(agg_function)
-    buses.fit(df, weights=None, objectives=objectives, expert_range=None)
-    buses.transform(df)
-    buses.improvement_features(27,3,0.01, ['MaxSpeed', 'Blacking', 'SummerCons'])
-    for alt_name in buses.improvement.index:
-        if objectives[alt_name] == 'max':
-            assert buses.improvement.loc[alt_name]['Change'] >= 0
-        elif objectives[alt_name] == 'min':
-            assert buses.improvement.loc[alt_name]['Change'] <= 0
+    buses.fit_transform(df, weights=None, objectives=objectives, expert_range=None)
+    changes = buses.improvement(
+        'improvement_features', 
+        alternative_to_improve= 7,
+        alternative_to_overcome= 3,
+        features_to_change= ['MaxSpeed', 'Blacking', 'SummerCons'])
+    for col_name in changes.columns:
+        if objectives[col_name] == 'max':
+            assert changes.at[0, col_name] >= 0
+        elif objectives[col_name] == 'min':
+            assert changes.at[0, col_name] <= 0
             
 def test_checkImprovedValue(df):
     objectives = {
@@ -36,8 +39,20 @@ def test_checkImprovedValue(df):
         "HorsePower" : "max"}
     agg_function = msdt.ITOPSIS
     buses = msdt.MSDTransformer(agg_function)
-    buses.fit(df, weights=None, objectives=objectives, expert_range=None)
-    buses.transform(df)
-    buses.improvement_features(27,3,0.01, ['MaxSpeed', 'Blacking', 'SummerCons'])
-    result = np.array([22.000, -18.875, 0.000])
-    assert buses.improvement['Change'].to_numpy() == pytest.approx(result, abs=1e-3)
+    buses.fit_transform(df, weights=None, objectives=objectives, expert_range=None)
+    changes = buses.improvement(
+        'improvement_features', 
+        alternative_to_improve= 7,
+        alternative_to_overcome= 3,
+        features_to_change= ['MaxSpeed', 'Blacking', 'SummerCons'])
+    result = {
+        'MaxSpeed': [0.0],
+        'ComprPressure': [0.0],
+        'Blacking': [-16.946075],
+        'Torque': [0.0],
+        'SummerCons': [0.0],
+        'WinterCons': [0.0],
+        'OilCons': [0.0],
+        'HorsePower': [0.0]}
+    result = pd.DataFrame(result)
+    assert np.allclose(result, changes, rtol=1e-5)
