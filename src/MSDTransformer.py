@@ -141,7 +141,7 @@ class MSDTransformer(TransformerMixin):
         func = getattr(self.agg_fn, function_name)
         return func(alternative_to_improve, alternative_to_overcome, improvement_ratio, **kwargs)
 
-    def plot(self, heatmap_quality=500, show_names=False):
+    def plot(self, heatmap_quality=500, show_names=False, plot_name = None):
         """
         Plots positions of alternatives in MSD space.
         """
@@ -174,7 +174,7 @@ class MSDTransformer(TransformerMixin):
             hoverinfo='none'),
             layout=go.Layout(
                 title=go.layout.Title(
-                    text="Visualizations of dataset in MSD-space",
+                    text=plot_name,
                     font_size=30
                 ),
                 title_x=0.5,
@@ -479,10 +479,10 @@ class MSDTransformer(TransformerMixin):
     def __check_max_std_calculator(self, max_std_calculator):
         if isinstance(max_std_calculator, str):
             if max_std_calculator == "scip":
-                from .max_std_calculator_scip import max_std_scip
+                from utils.max_std_calculator_scip import max_std_scip
                 return max_std_scip
             elif max_std_calculator == "gurobi":
-                from .max_std_calculator_gurobi import max_std_gurobi
+                from utils.max_std_calculator_gurobi import max_std_gurobi
                 return max_std_gurobi
             else:
                 raise ValueError("Invalid value at 'agg_fn': must be string (gurobi or scip) or function.")
