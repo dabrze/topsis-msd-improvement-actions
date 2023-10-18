@@ -153,6 +153,8 @@ class MSDTransformer(TransformerMixin):
         w_means = grid[0].ravel()
         w_stds = grid[1].ravel()
         agg_values = self.agg_fn.TOPSIS_calculation(np.mean(self.weights), np.array(w_means), np.array(w_stds))
+        if plot_name is None:
+            plot_name = "Weights: " + ','.join([str(x) for x in self.weights])
 
         fig = go.Figure(data=go.Contour(
             x=w_means,
