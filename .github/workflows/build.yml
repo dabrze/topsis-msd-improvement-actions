@@ -29,9 +29,7 @@ jobs:
         run: python -m pip install .
 
       - name: install module
-        run: |
-          pip install .
-        working-directory: src
+        run: pip install -e .
         
       - name: run unit tests
-        run: python -m pytest --import-mode=append tests/
+        run: python -m pytest
