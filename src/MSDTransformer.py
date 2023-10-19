@@ -1,15 +1,10 @@
 import math
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 from sklearn.base import TransformerMixin
-from sklearn.pipeline import Pipeline
-import matplotlib.pyplot as plt
 import plotly.graph_objects as go
-import itertools
 from IPython.display import display
-from scipy.spatial import Delaunay
 from pymoo.core.problem import Problem
 from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.operators.crossover.sbx import SBX
@@ -71,10 +66,6 @@ class MSDTransformer(TransformerMixin):
     def fit_transform(self, X, weights=None, objectives=None, expert_range=None):
         self.fit(X, weights, objectives, expert_range)
         return self.X_new
-
-    def change_aggregation_function(self, agg_fn):
-        self.agg_fn = self.__check_agg_fn(agg_fn)
-        # TODO X_new['AggFn'] and ranking needs to be recalculated after changing aggregation function
 
     def transform(self, X):
         if not self.isFitted:
