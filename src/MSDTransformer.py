@@ -60,17 +60,16 @@ class MSDTransformer(TransformerMixin):
             self.value_range.append(self.expert_range[c][1] - self.expert_range[c][0])
 
         self.weights = self.__normalize_weights(self.weights)
-
+        self.X_new = self.__normalize_data(X.copy())
+        self.__wmstd()
+        self.X_new['AggFn'] = self.agg_fn.TOPSIS_calculation(np.mean(self.weights), self.X_new['Mean'], self.X_new['Std'])
+        self.ranked_alternatives = self.__ranking()
         self.isFitted = True
 
         return self
 
     def fit_transform(self, X, weights=None, objectives=None, expert_range=None):
         self.fit(X, weights, objectives, expert_range)
-        self.X_new = self.__normalize_data(X.copy())
-        self.__wmstd()
-        self.X_new['AggFn'] = self.agg_fn.TOPSIS_calculation(np.mean(self.weights), self.X_new['Mean'], self.X_new['Std'])
-        self.ranked_alternatives = self.__ranking()
         return self.X_new
 
     def change_aggregation_function(self, agg_fn):
