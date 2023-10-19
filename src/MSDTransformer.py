@@ -140,7 +140,7 @@ class MSDTransformer(TransformerMixin):
         func = getattr(self.agg_fn, function_name)
         return func(alternative_to_improve, alternative_to_overcome, improvement_ratio, **kwargs)
 
-    def plot(self, heatmap_quality=500, show_names=False, plot_name = None):
+    def plot(self, heatmap_quality=500, show_names=False, plot_name=None):
         """
         Plots positions of alternatives in MSD space.
         """
@@ -291,7 +291,7 @@ class MSDTransformer(TransformerMixin):
             ),
             customdata=np.stack((custom, values), axis=1),
             text=self.X_new.index.values,
-            hovertemplate='<b>ID</b>: %{text}<br>' + 
+            hovertemplate='<b>ID</b>: %{text}<br>' +
                           '<b>Rank</b>: %{customdata[0]:f}<br>' +
                           '<b>AggFn</b>: %{customdata[1]:f}<br>' +
                           '<extra></extra>'
@@ -353,7 +353,7 @@ class MSDTransformer(TransformerMixin):
             ),
             customdata=np.stack(([old_rank], [old_value]), axis=1),
             text=['OLD ' + id],
-            hovertemplate='<b>ID</b>: %{text}<br>' + 
+            hovertemplate='<b>ID</b>: %{text}<br>' +
                           '<b>Old Rank</b>: %{customdata[0]:f}<br>' +
                           '<b>New Rank</b>: -<br>' +
                           '<b>AggFn</b>: %{customdata[1]:f}<br>' +
@@ -373,19 +373,18 @@ class MSDTransformer(TransformerMixin):
         self.X_newPoint = self.X_newPoint.sort_values(by='AggFn', ascending=False)
         new_rank = self.X_newPoint.index.get_loc('NEW ' + id) + 1
         new_value = self.X_newPoint.loc['NEW ' + id, 'AggFn']
-        
-        numbers = [i for i in range(1, self.n+1)]
+
+        numbers = [i for i in range(1, self.n + 1)]
         custom0 = numbers.copy()
         custom0.remove(old_rank)
         custom1 = numbers.copy()
         custom1.remove(new_rank)
 
-        
         ### add new point
         fig.add_trace(go.Scatter(
             x=[self.X_newPoint.loc['NEW ' + id, 'Mean']],
             y=[self.X_newPoint.loc['NEW ' + id, 'Std']],
-            showlegend = False,
+            showlegend=False,
             mode='markers',
             marker=dict(
                 color='white',
@@ -393,7 +392,7 @@ class MSDTransformer(TransformerMixin):
             ),
             customdata=np.stack(([new_rank], [new_value]), axis=1),
             text=['NEW ' + id],
-            hovertemplate='<b>ID</b>: %{text}<br>' + 
+            hovertemplate='<b>ID</b>: %{text}<br>' +
                           '<b>Old Rank</b>: -<br>' +
                           '<b>New Rank</b>: %{customdata[0]:f}<br>' +
                           '<b>AggFn</b>: %{customdata[1]:f}<br>' +
@@ -433,14 +432,13 @@ class MSDTransformer(TransformerMixin):
             ),
             customdata=np.stack((custom0, custom1, values), axis=1),
             text=self.X_newPoint.index.values,
-            hovertemplate='<b>ID</b>: %{text}<br>' + 
+            hovertemplate='<b>ID</b>: %{text}<br>' +
                           '<b>Old Rank</b>: %{customdata[0]:f}<br>' +
                           '<b>New Rank</b>: %{customdata[1]:f}<br>' +
                           '<b>AggFn</b>: %{customdata[2]:f}<br>' +
                           '<extra></extra>'
         ))
         return fig
-
 
     def show_ranking(self, mode=None, first=1, last=None):
 
@@ -601,8 +599,8 @@ class MSDTransformer(TransformerMixin):
         upper_bound = np.array(self.X.max()).tolist()
 
         for val, mini, maxi in zip(self.expert_range, lower_bound, upper_bound):
-            if not (val[0]<=mini and val[1]>=maxi):
-               raise ValueError("Invalid value at 'expert_range'. All values from original data must be in a range of expert_range.")
+            if not (val[0] <= mini and val[1] >= maxi):
+                raise ValueError("Invalid value at 'expert_range'. All values from original data must be in a range of expert_range.")
 
     def __check_input_after_transform(self, X):
         n = X.shape[0]
@@ -652,7 +650,7 @@ class MSDTransformer(TransformerMixin):
         c = 0
         for col in data.columns:
             data[col] = (data[col] - self.expert_range[c][0]) / \
-                (self.expert_range[c][1]-self.expert_range[c][0])
+                        (self.expert_range[c][1] - self.expert_range[c][0])
             c += 1
 
         for i in range(self.m):
@@ -669,7 +667,7 @@ class MSDTransformer(TransformerMixin):
         weights : np.array
             weights to be normalized
         """
-        weights = np.array([float(i)/max(weights) for i in weights])
+        weights = np.array([float(i) / max(weights) for i in weights])
         return weights
 
     def __wmstd(self):
@@ -725,13 +723,13 @@ class TOPSISAggregationFunction(ABC):
         if self.TOPSIS_calculation(w, m_boundary, alternative_to_improve["Std"]) < alternative_to_overcome["AggFn"]:
             return None
         else:
-            change = (m_boundary - alternative_to_improve["Mean"])/2
+            change = (m_boundary - alternative_to_improve["Mean"]) / 2
             actual_aggfn = self.TOPSIS_calculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
             while True:
                 if actual_aggfn >= alternative_to_overcome["AggFn"]:
                     if actual_aggfn - alternative_to_overcome["AggFn"] > improvement_ratio:
                         alternative_to_improve["Mean"] -= change
-                        change = change/2
+                        change = change / 2
                         actual_aggfn = self.TOPSIS_calculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
                     else:
                         break
@@ -739,11 +737,11 @@ class TOPSISAggregationFunction(ABC):
                     alternative_to_improve["Mean"] += change
                     actual_aggfn = self.TOPSIS_calculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
                     if actual_aggfn >= alternative_to_overcome["AggFn"]:
-                        change = change/2
+                        change = change / 2
             if alternative_to_improve["Std"] <= self.msd_transformer.max_std_calculator(alternative_to_improve["Mean"], self.msd_transformer.weights):
                 return pd.DataFrame([alternative_to_improve["Mean"] - m_start], columns=["Mean"])
             else:
-                while alternative_to_improve["Mean"] <=1:
+                while alternative_to_improve["Mean"] <= 1:
                     if alternative_to_improve["Std"] <= self.msd_transformer.max_std_calculator(alternative_to_improve["Mean"], self.msd_transformer.weights):
                         return pd.DataFrame([alternative_to_improve["Mean"] - m_start], columns=["Mean"])
                     alternative_to_improve["Mean"] += improvement_ratio
@@ -766,12 +764,12 @@ class TOPSISAggregationFunction(ABC):
                     if alternative_to_improve[features_to_change[i]] > boundary_values[i]:
                         raise ValueError("Invalid value at 'boundary_values': must be better or equal to improving alternative values")
         return np.array(boundary_values)
-    
+
     def improvement_features(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, features_to_change, boundary_values=None, **kwargs):
         if alternative_to_improve["AggFn"] >= alternative_to_overcome["AggFn"]:
             raise ValueError("Invalid value at 'alternatie_to_improve': must be worse than alternative_to_overcome'")
         boundary_values = self.__check_boundary_values(alternative_to_improve, features_to_change, boundary_values)
-        
+
         AggFn = alternative_to_improve["AggFn"]
         alternative_to_improve = alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"])
         improvement_start = alternative_to_improve.copy()
@@ -822,7 +820,8 @@ class TOPSISAggregationFunction(ABC):
         else:
             return None
 
-    def improvement_genetic(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, features_to_change, boundary_values=None, allow_deterioration=False, popsize=None, n_generations=200):
+    def improvement_genetic(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, features_to_change, boundary_values=None, allow_deterioration=False, popsize=None,
+                            n_generations=200):
         boundary_values = self.__check_boundary_values(alternative_to_improve, features_to_change, boundary_values)
 
         current_performances_US = alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).to_numpy().copy()
@@ -936,7 +935,7 @@ class ATOPSIS(TOPSISAggregationFunction):
 
     def TOPSIS_calculation(self, w, wm, wsd):
 
-        return np.sqrt(wm*wm + wsd*wsd)/w
+        return np.sqrt(wm * wm + wsd * wsd) / w
 
     def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, feature_to_change, **kwargs):
         """ Exact algorithm dedicated to the aggregation `A` for achieving the target by modifying the performance on a single criterion. """
@@ -994,19 +993,19 @@ class ATOPSIS(TOPSISAggregationFunction):
         if self.TOPSIS_calculation(w, alternative_to_improve["Mean"], sd_boundary) < alternative_to_overcome["AggFn"]:
             return None
         else:
-            change = (sd_boundary - alternative_to_improve["Std"])/2
+            change = (sd_boundary - alternative_to_improve["Std"]) / 2
             actual_aggfn = self.TOPSIS_calculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
             while True:
                 if actual_aggfn > alternative_to_overcome["AggFn"]:
                     if actual_aggfn - alternative_to_overcome["AggFn"] > improvement_ratio:
                         alternative_to_improve["Std"] -= change
-                        change = change/2
+                        change = change / 2
                         actual_aggfn = self.TOPSIS_calculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
                     else:
                         break
                 else:
                     alternative_to_improve["Std"] += change
-                    change = change/2
+                    change = change / 2
                     actual_aggfn = self.TOPSIS_calculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
             return pd.DataFrame([alternative_to_improve["Std"] - std_start], columns=["Std"])
 
@@ -1074,19 +1073,19 @@ class ITOPSIS(TOPSISAggregationFunction):
         if self.TOPSIS_calculation(w, alternative_to_improve["Mean"], 0) < alternative_to_overcome["AggFn"]:
             return None
         else:
-            change = alternative_to_improve["Std"]/2
+            change = alternative_to_improve["Std"] / 2
             actual_aggfn = self.TOPSIS_calculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
             while True:
                 if actual_aggfn > alternative_to_overcome["AggFn"]:
                     if actual_aggfn - alternative_to_overcome["AggFn"] > improvement_ratio:
                         alternative_to_improve["Std"] += change
-                        change = change/2
+                        change = change / 2
                         actual_aggfn = self.TOPSIS_calculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
                     else:
                         break
                 else:
                     alternative_to_improve["Std"] -= change
-                    change = change/2
+                    change = change / 2
                     actual_aggfn = self.TOPSIS_calculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
             return pd.DataFrame([alternative_to_improve["Std"] - std_start], columns=["Std"])
 
