@@ -8,6 +8,7 @@ from sklearn.pipeline import Pipeline
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import itertools
+import warnings
 from IPython.display import display
 from scipy.spatial import Delaunay
 from pymoo.core.problem import Problem
@@ -714,13 +715,14 @@ class TOPSISAggregationFunction(ABC):
     def improvement_single_feature(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, feature_to_change, **kwargs):
         pass
 
-    def improvement_mean(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, **kwargs):
+    def improvement_mean(self, alternative_to_improve, alternative_to_overcome, improvement_ratio, allow_std = False, **kwargs):
         if alternative_to_improve["AggFn"] >= alternative_to_overcome["AggFn"]:
             raise ValueError("Invalid value at 'alternatie_to_improve': must be worse than alternative_to_overcome'")
 
         w = np.mean(self.msd_transformer.weights)
         m_start = alternative_to_improve["Mean"]
         m_boundary = w
+        std_start = alternative_to_improve["Std"]
         if self.TOPSIS_calculation(w, m_boundary, alternative_to_improve["Std"]) < alternative_to_overcome["AggFn"]:
             return None
         else:
@@ -741,6 +743,13 @@ class TOPSISAggregationFunction(ABC):
                         change = change/2
             if alternative_to_improve["Std"] <= self.msd_transformer.max_std_calculator(alternative_to_improve["Mean"], self.msd_transformer.weights):
                 return pd.DataFrame([alternative_to_improve["Mean"] - m_start], columns=["Mean"])
+            elif allow_std:
+                alternative_to_improve['Std'] = self.msd_transformer.max_std_calculator(alternative_to_improve["Mean"], self.msd_transformer.weights)
+                actual_aggfn = self.TOPSIS_calculation(w, alternative_to_improve["Mean"], alternative_to_improve["Std"])
+                if actual_aggfn >= alternative_to_overcome['AggFn']:
+                    return pd.DataFrame([[alternative_to_improve["Mean"] - m_start, alternative_to_improve["Std"] - std_start]], columns=["Mean", "Std"])
+                else:
+                    return pd.DataFrame([[alternative_to_improve["Mean"] - m_start, alternative_to_improve["Std"] - std_start]], columns=["Mean", "Std"]) + self.improvement_mean(alternative_to_improve, alternative_to_overcome, improvement_ratio, allow_std, **kwargs)
             else:
                 while alternative_to_improve["Mean"] <=1:
                     if alternative_to_improve["Std"] <= self.msd_transformer.max_std_calculator(alternative_to_improve["Mean"], self.msd_transformer.weights):
