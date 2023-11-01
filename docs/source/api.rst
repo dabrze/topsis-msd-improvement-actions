@@ -1,7 +1,7 @@
 API
 =======
 
-.. autoclass:: MSDTransformer.MSDTransformer
+autoclass: MSDTransformer.MSDTransformer
 
 .. class:: MSDTransformer.MSDTransformer
 
