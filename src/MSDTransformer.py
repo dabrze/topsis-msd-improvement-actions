@@ -13,6 +13,7 @@ from pymoo.optimize import minimize
 
 
 class MSDTransformer(TransformerMixin):
+    """Docstring for class Foo."""
 
     def __init__(self, agg_fn, max_std_calculator="scip"):
         self.agg_fn = self.__check_agg_fn(agg_fn)
