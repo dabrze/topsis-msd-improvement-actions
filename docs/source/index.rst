@@ -6,7 +6,7 @@
 Welcome to MSDTransformer's documentation!
 ==========================================
 
-.. automodule:: my_project.main
+.. automodule:: MSDTransformer.MSDTransformer
     :members:
 
 **MSDTransformer** is a Python library for visualisations and actions in MSD space.

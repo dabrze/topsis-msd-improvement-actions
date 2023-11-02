@@ -3,6 +3,8 @@ API
 
 .. autoclass:: MSDTransformer.MSDTransformer
 
+.. class:: MSDTransformer.MSDTransformer
+
 .. autofunction:: MSDTransformer.MSDTransformer.__init__
 
 .. autofunction:: MSDTransformer.MSDTransformer.fit
