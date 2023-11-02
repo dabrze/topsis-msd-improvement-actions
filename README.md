@@ -50,16 +50,16 @@ students_transformer.transform(df)
 ![Transformed data frame](notebooks/figures/quickstart_transform.png)
 
 ```python
-students.plot()
+students_transformer.show_ranking()
 ```
 
-![Transformed data frame](./notebooks/figures/quickstart_ranking.png)
+![Ranking](./notebooks/figures/quickstart_ranking.png)
 
 ```python
-students.plot()
+students_transformer.plot()
 ```
 
-![Transformed data frame](notebooks/figures/quickstart_plot.png)
+![MSD plot](notebooks/figures/quickstart_plot.png)
 
 ## Citation
 
