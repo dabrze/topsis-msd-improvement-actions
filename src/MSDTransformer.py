@@ -13,12 +13,68 @@ from pymoo.optimize import minimize
 
 
 class MSDTransformer(TransformerMixin):
+    """
+    A class used to: calculate TOPSIS ranking,
+    plot positions of alternatives in MSD space,
+    perform improvement actions on selected alternative.
+    
+    ...
+    Attributes
+    ----------
+    X : dataframe
+        Pandas dataframe provided by the user.
+    data : dataframe
+        A copy of self.X, on which all calculations are performed.
+    n : int
+        Number of dataframe's columns
+    m : int
+        Number of dataframe's rows
+    original_weights : np.array of float
+        Numpy array of criteria' weights.
+    weights : np.array of float, optional
+        Normalized self.original_weights.
+    objectives : np.array of str
+        Numpy array informing which criteria are cost type
+        and which are gain type.
+    expert_range : none
+        TO DO
+    isFitted : bool
+        Simple flag which takes True value only when the fit() method
+        was performed on MSDTransformer object.
+    topsis_val : list of float
+        List of calculated TOPSIS values of self.dataframe.
+    ranked_alternatives : list of str
+        List of alternatives' ID's ordered according to their TOPSIS values.
+    """
     def __init__(self, agg_fn, max_std_calculator="scip"):
         self.agg_fn = self.__check_agg_fn(agg_fn)
         self.max_std_calculator = self.__check_max_std_calculator(max_std_calculator)
         self.isFitted = False
 
     def fit(self, X, weights=None, objectives=None, expert_range=None):
+        """Checks input data and normalizes it.
+        Parameters
+        ----------
+        data : dataframe
+            Pandas dataframe provided by the user. 
+            Apart of column and row names all values must be numerical.
+        weights : np.array of float, optional
+            Numpy array of criteria' weights. 
+            Its length must be equal to self.n.
+            (default: np.ones())
+        objectives : list or dict or str, optional
+            Numpy array informing which criteria are cost type and which are gain type.
+            It can be passed as:
+            - list of length equal to self.n. in which each element describes type of one criterion:
+            'cost'/'c'/'min' for cost type criteria and 'gain'/'g'/'max' for gain type criteria.
+            - dictionary of size equal to self.n in which each key is the criterion name and ech value takes one of the following values:
+            'cost'/'c'/'min' for cost type criteria and 'gain'/'g'/'max' for gain type criteria.
+            - a string which describes type of all criteria:
+            'cost'/'c'/'min' if criteria are cost type and 'gain'/'g'/'max' if criteria are gain type.
+            (default: list of 'max')
+        expert_range : none, optional
+            TO DO
+        """
         self.X = X
         self.n_alternatives = X.shape[0]
         self.n_criteria = X.shape[1]
@@ -60,10 +116,28 @@ class MSDTransformer(TransformerMixin):
         return self
 
     def fit_transform(self, X, weights=None, objectives=None, expert_range=None):
+        """ TO DO
+        Parameters
+        ----------
+        parameter : type
+            description
+        Returns
+        -------
+        TO DO
+        """
         self.fit(X, weights, objectives, expert_range)
         return self.X_new
 
     def transform(self, X):
+        """ TO DO
+        Parameters
+        ----------
+        parameter : type
+            description
+        Returns
+        -------
+        TO DO
+        """
         if not self.isFitted:
             raise Exception("fit is required before transform")
 
@@ -80,6 +154,15 @@ class MSDTransformer(TransformerMixin):
         return X_transformed
 
     def transform_US_to_wmsd(self, X_US):
+        """ TO DO
+        Parameters
+        ----------
+        parameter : type
+            description
+        Returns
+        -------
+        TO DO
+        """
         # transform data from Utility Space to WMSD Space
         w = self.weights
         s = np.linalg.norm(w) / np.mean(w)
@@ -93,6 +176,15 @@ class MSDTransformer(TransformerMixin):
     def inverse_transform(
         self, target_mean, target_std, std_type, sampling_density=None, epsilon=0.001
     ):
+        """ TO DO
+        Parameters
+        ----------
+        parameter : type
+            description
+        Returns
+        -------
+        TO DO
+        """
         if sampling_density is None:
             sampling_density = math.ceil(5000000 ** (1 / self.n_criteria))
             # print("sampling_density", sampling_density)
@@ -139,6 +231,15 @@ class MSDTransformer(TransformerMixin):
         improvement_ratio=0.000001,
         **kwargs,
     ):
+        """ TO DO
+        Parameters
+        ----------
+        parameter : type
+            description
+        Returns
+        -------
+        TO DO
+        """
         if type(alternative_to_improve) == int:
             alternative_to_improve = self.X_new.loc[
                 self.ranked_alternatives[alternative_to_improve]
@@ -325,6 +426,15 @@ class MSDTransformer(TransformerMixin):
         return fig
 
     def update_for_plot(self, id, changes, change_number):
+        """ TO DO
+        Parameters
+        ----------
+        parameter : type
+            description
+        Returns
+        -------
+        TO DO
+        """
         if "Mean" in changes.columns:
             self.X_newPoint = self.X_new.copy()
             self.X_newPoint.loc["NEW " + id] = self.X_newPoint.loc[id]
@@ -362,6 +472,15 @@ class MSDTransformer(TransformerMixin):
         return self.X_newPoint
 
     def plot2(self, id, changes, show_names=False, change_number=0):
+        """ TO DO
+        Parameters
+        ----------
+        parameter : type
+            description
+        Returns
+        -------
+        TO DO
+        """
         self.update_for_plot(id, changes, change_number)
         old_rank = (
             self.X_new.sort_values(by="AggFn", ascending=False).index.get_loc(id) + 1
@@ -466,6 +585,15 @@ class MSDTransformer(TransformerMixin):
         return fig
 
     def show_ranking(self, mode=None, first=1, last=None):
+        """ TO DO
+        Parameters
+        ----------
+        parameter : type
+            description
+        Returns
+        -------
+        TO DO
+        """
         if last is None:
             last = len(self.X_new.index)
 
@@ -711,13 +839,6 @@ class MSDTransformer(TransformerMixin):
             raise ValueError("'first' must be not greater than 'last'")
 
     def __normalize_data(self, data):
-        """normalize given data using either given expert range or min/max
-        uses the min-max normalization with minimum and maximum taken from expert ranges if given
-        Parameters
-        ----------
-        data : dataframe
-            data to be normalized
-        """
         c = 0
         for col in data.columns:
             data[col] = (data[col] - self.expert_range[c][0]) / (
@@ -732,13 +853,6 @@ class MSDTransformer(TransformerMixin):
         return data
 
     def __normalize_weights(self, weights):
-        """normalize weights
-        result are weights not greater than 1 but not 0 if not present previously
-        Parameters
-        ----------
-        weights : np.array
-            weights to be normalized
-        """
         weights = np.array([float(i) / max(weights) for i in weights])
         return weights
 
@@ -757,7 +871,6 @@ class MSDTransformer(TransformerMixin):
         self.X_new["Std"] = wsd
 
     def __ranking(self):
-        """creates a ranking from the data based on topsis value column"""
         data__ = self.X_new.copy()
         data__ = data__.sort_values(by="AggFn", ascending=False)
         arranged = data__.index.tolist()
@@ -773,11 +886,28 @@ class MSDTransformer(TransformerMixin):
 
 
 class TOPSISAggregationFunction(ABC):
+    """
+    Class description
+    ...
+    Attributes
+    ----------
+    attribute : type
+        description
+    """
     def __init__(self, msd_transformer):
         self.msd_transformer = msd_transformer
 
     @abstractmethod
     def TOPSIS_calculation(self, w, wm, wsd):
+        """ TO DO
+        Parameters
+        ----------
+        parameter : type
+            description
+        Returns
+        -------
+        TO DO
+        """
         pass
 
     @abstractmethod
@@ -789,6 +919,15 @@ class TOPSISAggregationFunction(ABC):
         feature_to_change,
         **kwargs,
     ):
+        """ TO DO
+        Parameters
+        ----------
+        parameter : type
+            description
+        Returns
+        -------
+        TO DO
+        """
         pass
 
     def improvement_mean(
@@ -798,6 +937,15 @@ class TOPSISAggregationFunction(ABC):
         improvement_ratio,
         **kwargs,
     ):
+        """ TO DO
+        Parameters
+        ----------
+        parameter : type
+            description
+        Returns
+        -------
+        TO DO
+        """
         if alternative_to_improve["AggFn"] >= alternative_to_overcome["AggFn"]:
             raise ValueError(
                 "Invalid value at 'alternatie_to_improve': must be worse than alternative_to_overcome'"
@@ -860,6 +1008,15 @@ class TOPSISAggregationFunction(ABC):
     def __check_boundary_values(
         self, alternative_to_improve, features_to_change, boundary_values
     ):
+        """ TO DO
+        Parameters
+        ----------
+        parameter : type
+            description
+        Returns
+        -------
+        TO DO
+        """
         if boundary_values is None:
             boundary_values = np.ones(len(features_to_change))
         else:
@@ -903,6 +1060,15 @@ class TOPSISAggregationFunction(ABC):
         boundary_values=None,
         **kwargs,
     ):
+        """ TO DO
+        Parameters
+        ----------
+        parameter : type
+            description
+        Returns
+        -------
+        TO DO
+        """
         if alternative_to_improve["AggFn"] >= alternative_to_overcome["AggFn"]:
             raise ValueError(
                 "Invalid value at 'alternatie_to_improve': must be worse than alternative_to_overcome'"
@@ -984,6 +1150,15 @@ class TOPSISAggregationFunction(ABC):
         popsize=None,
         n_generations=200,
     ):
+        """ TO DO
+        Parameters
+        ----------
+        parameter : type
+            description
+        Returns
+        -------
+        TO DO
+        """
         boundary_values = self.__check_boundary_values(
             alternative_to_improve, features_to_change, boundary_values
         )
@@ -1057,6 +1232,15 @@ class TOPSISAggregationFunction(ABC):
 
     @staticmethod
     def solve_quadratic_equation(a, b, c):
+        """ TO DO
+        Parameters
+        ----------
+        parameter : type
+            description
+        Returns
+        -------
+        TO DO
+        """
         discriminant = b**2 - 4 * a * c
         if discriminant < 0:
             return None
@@ -1068,6 +1252,15 @@ class TOPSISAggregationFunction(ABC):
     def choose_appropriate_solution(
         solution_1, solution_2, lower_bound, upper_bound, objective
     ):
+        """ TO DO
+        Parameters
+        ----------
+        parameter : type
+            description
+        Returns
+        -------
+        TO DO
+        """
         solution_1_is_feasible = upper_bound > solution_1 > lower_bound
         solution_2_is_feasible = upper_bound > solution_2 > lower_bound
         if solution_1_is_feasible:
@@ -1090,6 +1283,14 @@ class TOPSISAggregationFunction(ABC):
 
 
 class PostFactumTopsisPymoo(Problem):
+    """
+    Class description
+    ...
+    Attributes
+    ----------
+    attribute : type
+        description
+    """
     def __init__(
         self,
         topsis_model,
@@ -1140,10 +1341,27 @@ class PostFactumTopsisPymoo(Problem):
 
 
 class ATOPSIS(TOPSISAggregationFunction):
+    """
+    Class description
+    ...
+    Attributes
+    ----------
+    attribute : type
+        description
+    """
     def __init__(self, msd_transformer):
         super().__init__(msd_transformer)
 
     def TOPSIS_calculation(self, w, wm, wsd):
+        """ TO DO
+        Parameters
+        ----------
+        parameter : type
+            description
+        Returns
+        -------
+        TO DO
+        """
         return np.sqrt(wm * wm + wsd * wsd) / w
 
     def improvement_single_feature(
@@ -1154,6 +1372,15 @@ class ATOPSIS(TOPSISAggregationFunction):
         feature_to_change,
         **kwargs,
     ):
+        """ TO DO
+        Parameters
+        ----------
+        parameter : type
+            description
+        Returns
+        -------
+        TO DO
+        """
         """Exact algorithm dedicated to the aggregation `A` for achieving the target by modifying the performance on a single criterion."""
         performances_US = (
             alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"])
@@ -1227,6 +1454,15 @@ class ATOPSIS(TOPSISAggregationFunction):
         improvement_ratio,
         **kwargs,
     ):
+        """ TO DO
+        Parameters
+        ----------
+        parameter : type
+            description
+        Returns
+        -------
+        TO DO
+        """
         if alternative_to_improve["AggFn"] >= alternative_to_overcome["AggFn"]:
             raise ValueError(
                 "Invalid value at 'alternatie_to_improve': must be worse than alternative_to_overcome'"
@@ -1274,10 +1510,27 @@ class ATOPSIS(TOPSISAggregationFunction):
 
 
 class ITOPSIS(TOPSISAggregationFunction):
+    """
+    Class description
+    ...
+    Attributes
+    ----------
+    attribute : type
+        description
+    """
     def __init__(self, msd_transformer):
         super().__init__(msd_transformer)
 
     def TOPSIS_calculation(self, w, wm, wsd):
+        """ TO DO
+        Parameters
+        ----------
+        parameter : type
+            description
+        Returns
+        -------
+        TO DO
+        """
         return 1 - np.sqrt((w - wm) * (w - wm) + wsd * wsd) / w
 
     def improvement_single_feature(
@@ -1288,6 +1541,15 @@ class ITOPSIS(TOPSISAggregationFunction):
         feature_to_change,
         **kwargs,
     ):
+        """ TO DO
+        Parameters
+        ----------
+        parameter : type
+            description
+        Returns
+        -------
+        TO DO
+        """
         """Exact algorithm dedicated to the aggregation `I` for achieving the target by modifying the performance on a single criterion."""
         performances_US = (
             alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"])
@@ -1361,6 +1623,15 @@ class ITOPSIS(TOPSISAggregationFunction):
         improvement_ratio,
         **kwargs,
     ):
+        """ TO DO
+        Parameters
+        ----------
+        parameter : type
+            description
+        Returns
+        -------
+        TO DO
+        """
         if alternative_to_improve["AggFn"] >= alternative_to_overcome["AggFn"]:
             raise ValueError(
                 "Invalid value at 'alternatie_to_improve': must be worse than alternative_to_overcome'"
@@ -1408,10 +1679,27 @@ class ITOPSIS(TOPSISAggregationFunction):
 
 
 class RTOPSIS(TOPSISAggregationFunction):
+    """
+    Class description
+    ...
+    Attributes
+    ----------
+    attribute : type
+        description
+    """
     def __init__(self, msd_transformer):
         super().__init__(msd_transformer)
 
     def TOPSIS_calculation(self, w, wm, wsd):
+        """ TO DO
+        Parameters
+        ----------
+        parameter : type
+            description
+        Returns
+        -------
+        TO DO
+        """
         return np.sqrt(wm * wm + wsd * wsd) / (
             np.sqrt(wm * wm + wsd * wsd) + np.sqrt((w - wm) * (w - wm) + wsd * wsd)
         )
@@ -1424,6 +1712,15 @@ class RTOPSIS(TOPSISAggregationFunction):
         feature_to_change,
         **kwargs,
     ):
+        """ TO DO
+        Parameters
+        ----------
+        parameter : type
+            description
+        Returns
+        -------
+        TO DO
+        """
         """Exact algorithm dedicated to the aggregation `R` for achieving the target by modifying the performance on a single criterion."""
         performances_US = (
             alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"])
@@ -1502,6 +1799,15 @@ class RTOPSIS(TOPSISAggregationFunction):
         improvement_ratio,
         **kwargs,
     ):
+        """ TO DO
+        Parameters
+        ----------
+        parameter : type
+            description
+        Returns
+        -------
+        TO DO
+        """
         if alternative_to_improve["AggFn"] >= alternative_to_overcome["AggFn"]:
             raise ValueError(
                 "Invalid value at 'alternatie_to_improve': must be worse than alternative_to_overcome'"
