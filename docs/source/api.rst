@@ -1,68 +1,68 @@
 API
 =======
 
-.. autoclass:: src.MSDTransformer
+.. autoclass:: src.MSDTransformer.MSDTransformer
 
-.. autofunction:: src.MSDTransformer.__init__
+.. autofunction:: src.MSDTransformer.MSDTransformer.__init__
 
-.. autofunction:: src.MSDTransformer.fit
+.. autofunction:: src.MSDTransformer.MSDTransformer.fit
 
-.. autofunction:: src.MSDTransformer.fit_transform
+.. autofunction:: src.MSDTransformer.MSDTransformer.fit_transform
 
-.. autofunction:: src.MSDTransformer.transform
+.. autofunction:: src.MSDTransformer.MSDTransformer.transform
 
-.. autofunction:: src.MSDTransformer.transform_US_to_wmsd
+.. autofunction:: src.MSDTransformer.MSDTransformer.transform_US_to_wmsd
 
-.. autofunction:: src.MSDTransformer.inverse_transform
+.. autofunction:: src.MSDTransformer.MSDTransformer.inverse_transform
 
-.. autofunction:: src.MSDTransformer.improvement
+.. autofunction:: src.MSDTransformer.MSDTransformer.improvement
 
-.. autofunction:: src.MSDTransformer.plot
+.. autofunction:: src.MSDTransformer.MSDTransformer.plot
 
-.. autofunction:: src.MSDTransformer.update_for_plot
+.. autofunction:: src.MSDTransformer.MSDTransformer.update_for_plot
 
-.. autofunction:: src.MSDTransformer.plot2
+.. autofunction:: src.MSDTransformer.MSDTransformer.plot2
 
-.. autofunction:: src.MSDTransformer.show_ranking
+.. autofunction:: src.MSDTransformer.MSDTransformer.show_ranking
 
-.. autoclass:: src.TOPSISAggregationFunction
+.. autoclass:: src.MSDTransformer.TOPSISAggregationFunction
 
-.. autofunction:: src.TOPSISAggregationFunction.TOPSIS_calculation
+.. autofunction:: src.MSDTransformer.TOPSISAggregationFunction.TOPSIS_calculation
 
-.. autofunction:: src.TOPSISAggregationFunction.improvement_single_feature
+.. autofunction:: src.MSDTransformer.TOPSISAggregationFunction.improvement_single_feature
 
-.. autofunction:: src.TOPSISAggregationFunction.improvement_mean
+.. autofunction:: src.MSDTransformer.TOPSISAggregationFunction.improvement_mean
 
-.. autofunction:: src.TOPSISAggregationFunction.improvement_features
+.. autofunction:: src.MSDTransformer.TOPSISAggregationFunction.improvement_features
 
-.. autofunction:: src.TOPSISAggregationFunction.improvement_genetic
+.. autofunction:: src.MSDTransformer.TOPSISAggregationFunction.improvement_genetic
 
-.. autofunction:: src.TOPSISAggregationFunction.solve_quadratic_equation
+.. autofunction:: src.MSDTransformer.TOPSISAggregationFunction.solve_quadratic_equation
 
-.. autofunction:: src.TOPSISAggregationFunction.choose_appropriate_solution
+.. autofunction:: src.MSDTransformer.TOPSISAggregationFunction.choose_appropriate_solution
 
-.. autoclass:: src.PostFactumTopsisPymoo
+.. autoclass:: src.MSDTransformer.PostFactumTopsisPymoo
 
-.. autoclass:: src.ATOPSIS
+.. autoclass:: src.MSDTransformer.ATOPSIS
 
-.. autofunction:: src.ATOPSIS.TOPSIS_calculation
+.. autofunction:: src.MSDTransformer.ATOPSIS.TOPSIS_calculation
 
-.. autofunction:: src.ATOPSIS.improvement_single_feature
+.. autofunction:: src.MSDTransformer.ATOPSIS.improvement_single_feature
 
-.. autofunction:: src.ATOPSIS.improvement_std
+.. autofunction:: src.MSDTransformer.ATOPSIS.improvement_std
 
-.. autoclass:: src.ITOPSIS
+.. autoclass:: src.MSDTransformer.ITOPSIS
 
-.. autofunction:: src.ITOPSIS.TOPSIS_calculation
+.. autofunction:: src.MSDTransformer.ITOPSIS.TOPSIS_calculation
 
-.. autofunction:: src.ITOPSIS.improvement_single_feature
+.. autofunction:: src.MSDTransformer.ITOPSIS.improvement_single_feature
 
-.. autofunction:: src.ITOPSIS.improvement_std
+.. autofunction:: src.MSDTransformer.ITOPSIS.improvement_std
 
-.. autoclass:: src.RTOPSIS
+.. autoclass:: src.MSDTransformer.RTOPSIS
 
-.. autofunction:: src.RTOPSIS.TOPSIS_calculation
+.. autofunction:: src.MSDTransformer.RTOPSIS.TOPSIS_calculation
 
-.. autofunction:: src.RTOPSIS.improvement_single_feature
+.. autofunction:: src.MSDTransformer.RTOPSIS.improvement_single_feature
 
-.. autofunction:: src.RTOPSIS.improvement_std
+.. autofunction:: src.MSDTransformer.RTOPSIS.improvement_std
