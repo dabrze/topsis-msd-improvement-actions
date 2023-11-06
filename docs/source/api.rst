@@ -1,11 +1,11 @@
 API
 =======
 
-.. autoclass:: MSDTransformer.MSDTransformer
+.. autoclass:: src.MSDTransformer
 
-.. class:: MSDTransformer.MSDTransformer
+.. class:: src.MSDTransformer
 
-.. autofunction:: MSDTransformer.MSDTransformer.__init__
+.. autofunction:: src.MSDTransformer.__init__
 
 .. autofunction:: MSDTransformer.MSDTransformer.fit
 
