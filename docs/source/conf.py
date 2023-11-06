@@ -6,6 +6,10 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
+import os
+import sys
+sys.path.insert(0, os.path.abspath('../../src'))
+
 project = 'MSDTransformer'
 copyright = '2023, Adam Ciesiółka, Bogna Kilanowska, Maciej Woś'
 author = 'Adam Ciesiółka, Bogna Kilanowska, Maciej Woś'
@@ -13,9 +17,6 @@ author = 'Adam Ciesiółka, Bogna Kilanowska, Maciej Woś'
 release = '0.1'
 version = '0.1.0'
 
-import os
-import sys
-sys.path.insert(0, os.path.abspath('../../src'))
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -25,6 +26,7 @@ extensions = [
     'sphinx.ext.doctest',
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
+    'sphinx.ext.autosectionlabel',
     'sphinx.ext.intersphinx',
     'sphinx.ext.coverage',
     'sphinx.ext.napoleon'
