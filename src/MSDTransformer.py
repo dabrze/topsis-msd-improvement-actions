@@ -933,6 +933,7 @@ class TOPSISAggregationFunction(ABC):
         alternative_to_improve,
         alternative_to_overcome,
         improvement_ratio,
+        allow_std = False,
         **kwargs,
     ):
         """ TO DO
@@ -952,6 +953,7 @@ class TOPSISAggregationFunction(ABC):
         w = np.mean(self.msd_transformer.weights)
         m_start = alternative_to_improve["Mean"]
         m_boundary = w
+        std_start = alternative_to_improve["Std"]
         if (
             self.TOPSIS_calculation(w, m_boundary, alternative_to_improve["Std"])
             < alternative_to_overcome["AggFn"]
@@ -990,8 +992,25 @@ class TOPSISAggregationFunction(ABC):
                 return pd.DataFrame(
                     [alternative_to_improve["Mean"] - m_start], columns=["Mean"]
                 )
+            elif allow_std:
+                alternative_to_improve['Std'] = self.msd_transformer.max_std_calculator(
+                    alternative_to_improve["Mean"], self.msd_transformer.weights
+                )
+                actual_aggfn = self.TOPSIS_calculation(
+                    w, alternative_to_improve["Mean"], alternative_to_improve["Std"]
+                )
+                if actual_aggfn >= alternative_to_overcome['AggFn']:
+                    return pd.DataFrame(
+                        [[alternative_to_improve["Mean"] - m_start, alternative_to_improve["Std"] - std_start]], columns=["Mean", "Std"]
+                    )
+                else:
+                    return pd.DataFrame(
+                        [[alternative_to_improve["Mean"] - m_start, alternative_to_improve["Std"] - std_start]], columns=["Mean", "Std"]
+                    ) + self.improvement_mean(
+                        alternative_to_improve, alternative_to_overcome, improvement_ratio, allow_std, **kwargs
+                    )
             else:
-                while alternative_to_improve["Mean"] <= 1:
+                while alternative_to_improve["Mean"] <= m_boundry:
                     if alternative_to_improve[
                         "Std"
                     ] <= self.msd_transformer.max_std_calculator(
