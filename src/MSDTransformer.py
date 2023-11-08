@@ -21,44 +21,37 @@ class MSDTransformer(TransformerMixin):
     ...
     Attributes
     ----------
-    data : dataframe
-        A copy of self.X, on which all calculations are performed.
-    X : dataframe
-        Pandas dataframe provided by the user.
-    data : dataframe
+
+    X : data-frame
+        Pandas data-frame provided by the user.
+    X_new : data-frame
+        Pandas data-frame, normalized X. 
+    data : data-frame
         A copy of self.X, on which all calculations are performed.
     n : int
-        Number of dataframe's columns
+        Number of data-frame's columns
     m : int
-        Number of dataframe's rows
-    original_weights : np.array of float
-        Numpy array of criteria' weights.
-    weights : np.array of float, optional
-        Normalized self.original_weights.
+        Number of data-frame's rows
+    weights : np.array of float
+        Array containing normalized weights.
     objectives : np.array of str
         Numpy array informing which criteria are cost type
         and which are gain type.
-    expert_range : none
-        TO DO
-    isFitted : bool
-        Simple flag which takes True value only when the fit() method
-        was performed on MSDTransformer object.
-    topsis_val : list of float
-        List of calculated TOPSIS values of self.dataframe.
-    ranked_alternatives : list of str
-        List of alternatives' ID's ordered according to their TOPSIS values.
+    expert_range : 2D list of floats
+        2D list containing normalized expert range.
     """
     def __init__(self, agg_fn, max_std_calculator="scip"):
         self.agg_fn = self.__check_agg_fn(agg_fn)
         self.max_std_calculator = self.__check_max_std_calculator(max_std_calculator)
-        self.isFitted = False
+        self._isFitted = False
 
     def fit(self, X, weights=None, objectives=None, expert_range=None):
         """Checks input data and normalizes it.
         Parameters
         ----------
-        data : dataframe
-            Pandas dataframe provided by the user. 
+
+        X : data-frame
+            Pandas data-frame provided by the user. 
             Apart of column and row names all values must be numerical.
         weights : np.array of float, optional
             Numpy array of criteria' weights. 
@@ -74,17 +67,17 @@ class MSDTransformer(TransformerMixin):
             - a string which describes type of all criteria:
             'cost'/'c'/'min' if criteria are cost type and 'gain'/'g'/'max' if criteria are gain type.
             (default: list of 'max')
-        expert_range : none, optional
-            TO DO
+        expert_range : 2D list or dictionary, optional
+            For each criterion must be provided minimal and maximal value.
+            All criteria must fit in range [minimal, maximal]
+            (default: 2D list of minimal and maximal values among provided criteria)
         """
         self.X = X
-        self.n_alternatives = X.shape[0]
-        self.n_criteria = X.shape[1]
-        self.n = self.n_alternatives
-        self.m = self.n_criteria
+        self.n = X.shape[0] #n_alternatives
+        self.m = X.shape[1] #n_criteria
 
-        self.original_weights = self.__check_weights(weights)
-        self.weights = self.original_weights.copy()
+        self._original_weights = self.__check_weights(weights)
+        self.weights = self._original_weights.copy()
 
         self.objectives = self.__check_objectives(objectives)
 
@@ -95,16 +88,15 @@ class MSDTransformer(TransformerMixin):
 
         self.expert_range = self.__check_expert_range(expert_range)
 
-        self.topsis_val = []
-        self.ranked_alternatives = []
+        self._ranked_alternatives = []
 
         self.__check_input()
 
-        self.value_range = []
-        self.lower_bounds = []
+        self._value_range = []
+        self._lower_bounds = []
         for c in range(self.m):
-            self.lower_bounds.append(self.expert_range[c][0])
-            self.value_range.append(self.expert_range[c][1] - self.expert_range[c][0])
+            self._lower_bounds.append(self.expert_range[c][0])
+            self._value_range.append(self.expert_range[c][1] - self.expert_range[c][0])
 
         self.weights = self.__normalize_weights(self.weights)
         self.X_new = self.__normalize_data(X.copy())
@@ -112,8 +104,8 @@ class MSDTransformer(TransformerMixin):
         self.X_new["AggFn"] = self.agg_fn.TOPSIS_calculation(
             np.mean(self.weights), self.X_new["Mean"], self.X_new["Std"]
         )
-        self.ranked_alternatives = self.__ranking()
-        self.isFitted = True
+        self._ranked_alternatives = self.__ranking()
+        self._isFitted = True
 
         return self
 
@@ -140,7 +132,7 @@ class MSDTransformer(TransformerMixin):
         -------
         TO DO
         """
-        if not self.isFitted:
+        if not self._isFitted:
             raise Exception("fit is required before transform")
 
         self.__check_input_after_transform(X)
@@ -244,14 +236,14 @@ class MSDTransformer(TransformerMixin):
         """
         if type(alternative_to_improve) == int:
             alternative_to_improve = self.X_new.loc[
-                self.ranked_alternatives[alternative_to_improve]
+                self._ranked_alternatives[alternative_to_improve]
             ].copy()
         elif type(alternative_to_improve) == str:
             alternative_to_improve = self.X_new.loc[alternative_to_improve].copy()
 
         if type(alternative_to_overcome) == int:
             alternative_to_overcome = self.X_new.loc[
-                self.ranked_alternatives[alternative_to_overcome]
+                self._ranked_alternatives[alternative_to_overcome]
             ].copy()
         elif type(alternative_to_overcome) == str:
             alternative_to_overcome = self.X_new.loc[alternative_to_overcome].copy()
@@ -398,7 +390,7 @@ class MSDTransformer(TransformerMixin):
         ### plot the ranked data
         custom = []
         for i in self.X_new.index.values:
-            custom.append(1 + self.ranked_alternatives.index(i))
+            custom.append(1 + self._ranked_alternatives.index(i))
 
         fig.add_trace(
             go.Scatter(
@@ -586,15 +578,23 @@ class MSDTransformer(TransformerMixin):
         )
         return fig
 
-    def show_ranking(self, mode=None, first=1, last=None):
-        """ TO DO
+    def show_ranking(self, mode='standard', first=1, last=None):
+        """ Displays the TOPSIS ranking
         Parameters
         ----------
-        parameter : type
-            description
-        Returns
-        -------
-        TO DO
+
+        mode : 'minimal'/'standard'/'full', optional
+            Way of display of the ranking. If mode='minimal', then only positions
+            of ranked alternatives will be displayed. If mode='standard' then additionally
+            all criteria values will be showed. If mode='full', then apart of criteria 
+            values also values of mean, standard deviation and aggregation function will be displayed.
+            (default 'standard')
+        first : int, optional
+            Rank from which the ranking should be displayed.
+            (default 1)
+        first : int, optional
+            Rank to which the ranking should be displayed.
+            (default None)
         """
         if last is None:
             last = len(self.X_new.index)
@@ -610,7 +610,7 @@ class MSDTransformer(TransformerMixin):
         alternative_names = ranking.index.tolist()
         for alternative in alternative_names:
             ranking.loc[alternative, "Rank"] = (
-                self.ranked_alternatives.index(alternative) + 1
+                self._ranked_alternatives.index(alternative) + 1
             )
 
         ranking = ranking.sort_values(by=["Rank"])
@@ -1086,7 +1086,7 @@ class TOPSISAggregationFunction(ABC):
         improvement_start = alternative_to_improve.copy()
         feature_pointer = 0
         w = self.msd_transformer.weights
-        value_range = self.msd_transformer.value_range
+        value_range = self.msd_transformer._value_range
         objectives = self.msd_transformer.objectives
 
         is_improvement_satisfactory = False
@@ -1221,7 +1221,7 @@ class TOPSISAggregationFunction(ABC):
             improvement_actions[:, modified_criteria_subset] = (
                 res.F - current_performances_US[modified_criteria_subset]
             )
-            improvement_actions *= np.array(self.msd_transformer.value_range)
+            improvement_actions *= np.array(self.msd_transformer._value_range)
             improvement_actions[
                 :, np.array(self.msd_transformer.objectives) == "min"
             ] *= -1
@@ -1390,8 +1390,8 @@ class ATOPSIS(TOPSISAggregationFunction):
             .copy()
         )
         performances_CS = (
-            performances_US * self.msd_transformer.value_range
-            + self.msd_transformer.lower_bounds
+            performances_US * self.msd_transformer._value_range
+            + self.msd_transformer._lower_bounds
         )
         weights = self.msd_transformer.weights
         target_agg_value = (
@@ -1401,8 +1401,8 @@ class ATOPSIS(TOPSISAggregationFunction):
         modified_criterion_idx = list(
             alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).index
         ).index(feature_to_change)
-        criterion_range = self.msd_transformer.value_range[modified_criterion_idx]
-        lower_bound = self.msd_transformer.lower_bounds[modified_criterion_idx]
+        criterion_range = self.msd_transformer._value_range[modified_criterion_idx]
+        lower_bound = self.msd_transformer._lower_bounds[modified_criterion_idx]
         upper_bound = lower_bound + criterion_range
         objective = self.msd_transformer.objectives[modified_criterion_idx]
 
@@ -1559,8 +1559,8 @@ class ITOPSIS(TOPSISAggregationFunction):
             .copy()
         )
         performances_CS = (
-            performances_US * self.msd_transformer.value_range
-            + self.msd_transformer.lower_bounds
+            performances_US * self.msd_transformer._value_range
+            + self.msd_transformer._lower_bounds
         )
         weights = self.msd_transformer.weights
         target_agg_value = (
@@ -1570,8 +1570,8 @@ class ITOPSIS(TOPSISAggregationFunction):
         modified_criterion_idx = list(
             alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).index
         ).index(feature_to_change)
-        criterion_range = self.msd_transformer.value_range[modified_criterion_idx]
-        lower_bound = self.msd_transformer.lower_bounds[modified_criterion_idx]
+        criterion_range = self.msd_transformer._value_range[modified_criterion_idx]
+        lower_bound = self.msd_transformer._lower_bounds[modified_criterion_idx]
         upper_bound = lower_bound + criterion_range
         objective = self.msd_transformer.objectives[modified_criterion_idx]
 
@@ -1730,8 +1730,8 @@ class RTOPSIS(TOPSISAggregationFunction):
             .copy()
         )
         performances_CS = (
-            performances_US * self.msd_transformer.value_range
-            + self.msd_transformer.lower_bounds
+            performances_US * self.msd_transformer._value_range
+            + self.msd_transformer._lower_bounds
         )
         weights = self.msd_transformer.weights
         target_agg_value = alternative_to_overcome["AggFn"] + improvement_ratio / 2
@@ -1739,8 +1739,8 @@ class RTOPSIS(TOPSISAggregationFunction):
         modified_criterion_idx = list(
             alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).index
         ).index(feature_to_change)
-        criterion_range = self.msd_transformer.value_range[modified_criterion_idx]
-        lower_bound = self.msd_transformer.lower_bounds[modified_criterion_idx]
+        criterion_range = self.msd_transformer._value_range[modified_criterion_idx]
+        lower_bound = self.msd_transformer._lower_bounds[modified_criterion_idx]
         upper_bound = lower_bound + criterion_range
         objective = self.msd_transformer.objectives[modified_criterion_idx]
 
