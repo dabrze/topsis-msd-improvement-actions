@@ -18,7 +18,6 @@ class MSDTransformer(TransformerMixin):
     plot positions of alternatives in MSD space,
     perform improvement actions on selected alternative.
     
-    ...
     X : data-frame
         Pandas data-frame provided by the user.
     X_new : data-frame
