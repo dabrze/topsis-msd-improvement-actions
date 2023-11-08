@@ -19,9 +19,6 @@ class MSDTransformer(TransformerMixin):
     perform improvement actions on selected alternative.
     
     ...
-    Attributes
-    ----------
-
     X : data-frame
         Pandas data-frame provided by the user.
     X_new : data-frame
@@ -49,7 +46,7 @@ class MSDTransformer(TransformerMixin):
         """Checks input data and normalizes it.
         Parameters
         ----------
-
+        none : none
         X : data-frame
             Pandas data-frame provided by the user. 
             Apart of column and row names all values must be numerical.
@@ -582,7 +579,7 @@ class MSDTransformer(TransformerMixin):
         """ Displays the TOPSIS ranking
         Parameters
         ----------
-
+        none : none
         mode : 'minimal'/'standard'/'full', optional
             Way of display of the ranking. If mode='minimal', then only positions
             of ranked alternatives will be displayed. If mode='standard' then additionally
