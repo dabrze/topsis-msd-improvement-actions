@@ -14,7 +14,7 @@ from pymoo.optimize import minimize
 
 class MSDTransformer(TransformerMixin):
     """
-    A class used to: calculate TOPSIS ranking,
+    A class used to calculate TOPSIS ranking,
     plot positions of alternatives in MSD space,
     perform improvement actions on selected alternative.
     
@@ -100,7 +100,7 @@ class MSDTransformer(TransformerMixin):
 
         self.value_range = []
         self.lower_bounds = []
-        for c in range(self.n_criteria):
+        for c in range(self.m):
             self.lower_bounds.append(self.expert_range[c][0])
             self.value_range.append(self.expert_range[c][1] - self.expert_range[c][0])
 
@@ -186,10 +186,10 @@ class MSDTransformer(TransformerMixin):
         TO DO
         """
         if sampling_density is None:
-            sampling_density = math.ceil(5000000 ** (1 / self.n_criteria))
+            sampling_density = math.ceil(5000000 ** (1 / self.m))
             # print("sampling_density", sampling_density)
 
-        dims = [np.linspace(0, 1, sampling_density) for i in range(self.n_criteria)]
+        dims = [np.linspace(0, 1, sampling_density) for i in range(self.m)]
         grid = np.meshgrid(*dims)
         points = np.column_stack([xx.ravel() for xx in grid])
         # print(f"{len(points)} samples generated in total")
@@ -333,7 +333,7 @@ class MSDTransformer(TransformerMixin):
                 return np.sqrt(value_under_sqrt) / n
 
             means = np.linspace(0, 1, 10000)
-            perimeter = max_std(means, self.n_criteria)
+            perimeter = max_std(means, self.m)
         else:
             quality_exact = {
                 2: 1000,
@@ -346,7 +346,7 @@ class MSDTransformer(TransformerMixin):
                 9: 100,
             }
             means = np.linspace(
-                0, np.mean(self.weights), quality_exact.get(self.n_criteria, 50)
+                0, np.mean(self.weights), quality_exact.get(self.m, 50)
             )
             perimeter = [self.max_std_calculator(mean, self.weights) for mean in means]
 
@@ -799,7 +799,7 @@ class MSDTransformer(TransformerMixin):
                 "Dataframe must not contain any none/nan values, but found at least one"
             )
 
-        if self.n_criteria != m:
+        if self.m != m:
             raise ValueError(
                 "Invalid number of columns. Number of criteria must be the same as in previous dataframe."
             )
