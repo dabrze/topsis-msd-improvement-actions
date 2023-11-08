@@ -21,6 +21,8 @@ class MSDTransformer(TransformerMixin):
     ...
     Attributes
     ----------
+    data : dataframe
+        A copy of self.X, on which all calculations are performed.
     X : dataframe
         Pandas dataframe provided by the user.
     data : dataframe
