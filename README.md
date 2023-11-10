@@ -6,12 +6,12 @@ This repository hosts the code for **MSDTransformer** - a scikit-learn compatibl
 
 ## Requirements
 
-MSDTransformer uses PySCIPOpt to determine exact WMSD boundaries quickly. If you use conda, you should be fine performing the follwoing command:
+MSDTransformer uses PySCIPOpt to determine exact WMSD boundaries quickly. If you use conda, you should be fine performing the follwoing command (easier option):
 ```console
 conda install --channel conda-forge pyscipopt
 ``` 
-If you use PyPI or want to install PySCIPOpt from source, then you will need a working installation of the [SCIP Optimization
-Suite](https://www.scipopt.org/). Please, make sure that your SCIP installation works, before installing MSDTransformer. For more details on how to install SCIP, please refer to the [PySCIPOpt documentation](https://github.com/scipopt/PySCIPOpt/blob/master/INSTALL.md).
+If you use PyPI, then you will need a working installation of the [SCIP Optimization
+Suite](https://www.scipopt.org/) (harder option, but might run faster). Please, make sure that your SCIP installation works, before installing MSDTransformer. For more details on how to install SCIP, please refer to the [PySCIPOpt documentation](https://github.com/scipopt/PySCIPOpt/blob/master/INSTALL.md).
 
 After installing PySCIPOpt (or if you already have SCIP installed), you can install the other dependencies by running:
 ```console
