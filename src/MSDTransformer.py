@@ -17,11 +17,11 @@ class MSDTransformer(TransformerMixin):
     A class used to calculate TOPSIS ranking,
     plot positions of alternatives in MSD space,
     perform improvement actions on selected alternative.
-    
+
     X : data-frame
         Pandas data-frame provided by the user.
     X_new : data-frame
-        Pandas data-frame, normalized X. 
+        Pandas data-frame, normalized X.
     data : data-frame
         A copy of self.X, on which all calculations are performed.
     n : int
@@ -36,6 +36,7 @@ class MSDTransformer(TransformerMixin):
     expert_range : 2D list of floats
         2D list containing normalized expert range.
     """
+
     def __init__(self, agg_fn, max_std_calculator="scip"):
         self.agg_fn = self.__check_agg_fn(agg_fn)
         self.max_std_calculator = self.__check_max_std_calculator(max_std_calculator)
@@ -47,10 +48,10 @@ class MSDTransformer(TransformerMixin):
         ----------
         none : none
         X : data-frame
-            Pandas data-frame provided by the user. 
+            Pandas data-frame provided by the user.
             Apart of column and row names all values must be numerical.
         weights : np.array of float, optional
-            Numpy array of criteria' weights. 
+            Numpy array of criteria' weights.
             Its length must be equal to self.n.
             (default: np.ones())
         objectives : list or dict or str, optional
@@ -69,8 +70,8 @@ class MSDTransformer(TransformerMixin):
             (default: 2D list of minimal and maximal values among provided criteria)
         """
         self.X = X
-        self.n = X.shape[0] #n_alternatives
-        self.m = X.shape[1] #n_criteria
+        self.n = X.shape[0]  # n_alternatives
+        self.m = X.shape[1]  # n_criteria
 
         self._original_weights = self.__check_weights(weights)
         self.weights = self._original_weights.copy()
@@ -106,7 +107,7 @@ class MSDTransformer(TransformerMixin):
         return self
 
     def fit_transform(self, X, weights=None, objectives=None, expert_range=None):
-        """ TO DO
+        """TO DO
         Parameters
         ----------
         parameter : type
@@ -119,7 +120,7 @@ class MSDTransformer(TransformerMixin):
         return self.X_new
 
     def transform(self, X):
-        """ TO DO
+        """TO DO
         Parameters
         ----------
         parameter : type
@@ -144,7 +145,7 @@ class MSDTransformer(TransformerMixin):
         return X_transformed
 
     def transform_US_to_wmsd(self, X_US):
-        """ TO DO
+        """TO DO
         Parameters
         ----------
         parameter : type
@@ -166,7 +167,7 @@ class MSDTransformer(TransformerMixin):
     def inverse_transform(
         self, target_mean, target_std, std_type, sampling_density=None, epsilon=0.001
     ):
-        """ TO DO
+        """TO DO
         Parameters
         ----------
         parameter : type
@@ -221,7 +222,7 @@ class MSDTransformer(TransformerMixin):
         improvement_ratio=0.000001,
         **kwargs,
     ):
-        """ TO DO
+        """TO DO
         Parameters
         ----------
         parameter : type
@@ -264,7 +265,7 @@ class MSDTransformer(TransformerMixin):
             np.mean(self.weights), np.array(w_means), np.array(w_stds)
         )
         if plot_name is None:
-            plot_name = "Weights: " + ",".join([str(x) for x in self.weights])
+            plot_name = "Weights: " + ",".join([f"{x:.3f}" for x in self.weights])
 
         fig = go.Figure(
             data=go.Contour(
@@ -326,18 +327,11 @@ class MSDTransformer(TransformerMixin):
             perimeter = max_std(means, self.m)
         else:
             quality_exact = {
-                2: 1000,
-                3: 600,
-                4: 400,
-                5: 300,
-                6: 200,
-                7: 150,
-                8: 125,
-                9: 100,
+                2: 125,
+                3: 100,
+                4: 75,
             }
-            means = np.linspace(
-                0, np.mean(self.weights), quality_exact.get(self.m, 50)
-            )
+            means = np.linspace(0, np.mean(self.weights), quality_exact.get(self.m, 50))
             perimeter = [self.max_std_calculator(mean, self.weights) for mean in means]
 
         # draw upper perimeter
@@ -416,7 +410,7 @@ class MSDTransformer(TransformerMixin):
         return fig
 
     def update_for_plot(self, id, changes, change_number):
-        """ TO DO
+        """TO DO
         Parameters
         ----------
         parameter : type
@@ -462,7 +456,7 @@ class MSDTransformer(TransformerMixin):
         return self.X_newPoint
 
     def plot2(self, id, changes, show_names=False, change_number=0):
-        """ TO DO
+        """TO DO
         Parameters
         ----------
         parameter : type
@@ -574,15 +568,15 @@ class MSDTransformer(TransformerMixin):
         )
         return fig
 
-    def show_ranking(self, mode='standard', first=1, last=None):
-        """ Displays the TOPSIS ranking
+    def show_ranking(self, mode="standard", first=1, last=None):
+        """Displays the TOPSIS ranking
         Parameters
         ----------
         none : none
         mode : 'minimal'/'standard'/'full', optional
             Way of display of the ranking. If mode='minimal', then only positions
             of ranked alternatives will be displayed. If mode='standard' then additionally
-            all criteria values will be showed. If mode='full', then apart of criteria 
+            all criteria values will be showed. If mode='full', then apart of criteria
             values also values of mean, standard deviation and aggregation function will be displayed.
             (default 'standard')
         first : int, optional
@@ -892,12 +886,13 @@ class TOPSISAggregationFunction(ABC):
     attribute : type
         description
     """
+
     def __init__(self, msd_transformer):
         self.msd_transformer = msd_transformer
 
     @abstractmethod
     def TOPSIS_calculation(self, w, wm, wsd):
-        """ TO DO
+        """TO DO
         Parameters
         ----------
         parameter : type
@@ -917,7 +912,7 @@ class TOPSISAggregationFunction(ABC):
         feature_to_change,
         **kwargs,
     ):
-        """ TO DO
+        """TO DO
         Parameters
         ----------
         parameter : type
@@ -933,10 +928,10 @@ class TOPSISAggregationFunction(ABC):
         alternative_to_improve,
         alternative_to_overcome,
         improvement_ratio,
-        allow_std = False,
+        allow_std=False,
         **kwargs,
     ):
-        """ TO DO
+        """TO DO
         Parameters
         ----------
         parameter : type
@@ -993,21 +988,37 @@ class TOPSISAggregationFunction(ABC):
                     [alternative_to_improve["Mean"] - m_start], columns=["Mean"]
                 )
             elif allow_std:
-                alternative_to_improve['Std'] = self.msd_transformer.max_std_calculator(
+                alternative_to_improve["Std"] = self.msd_transformer.max_std_calculator(
                     alternative_to_improve["Mean"], self.msd_transformer.weights
                 )
                 actual_aggfn = self.TOPSIS_calculation(
                     w, alternative_to_improve["Mean"], alternative_to_improve["Std"]
                 )
-                if actual_aggfn >= alternative_to_overcome['AggFn']:
+                if actual_aggfn >= alternative_to_overcome["AggFn"]:
                     return pd.DataFrame(
-                        [[alternative_to_improve["Mean"] - m_start, alternative_to_improve["Std"] - std_start]], columns=["Mean", "Std"]
+                        [
+                            [
+                                alternative_to_improve["Mean"] - m_start,
+                                alternative_to_improve["Std"] - std_start,
+                            ]
+                        ],
+                        columns=["Mean", "Std"],
                     )
                 else:
                     return pd.DataFrame(
-                        [[alternative_to_improve["Mean"] - m_start, alternative_to_improve["Std"] - std_start]], columns=["Mean", "Std"]
+                        [
+                            [
+                                alternative_to_improve["Mean"] - m_start,
+                                alternative_to_improve["Std"] - std_start,
+                            ]
+                        ],
+                        columns=["Mean", "Std"],
                     ) + self.improvement_mean(
-                        alternative_to_improve, alternative_to_overcome, improvement_ratio, allow_std, **kwargs
+                        alternative_to_improve,
+                        alternative_to_overcome,
+                        improvement_ratio,
+                        allow_std,
+                        **kwargs,
                     )
             else:
                 while alternative_to_improve["Mean"] <= m_boundry:
@@ -1025,7 +1036,7 @@ class TOPSISAggregationFunction(ABC):
     def __check_boundary_values(
         self, alternative_to_improve, features_to_change, boundary_values
     ):
-        """ TO DO
+        """TO DO
         Parameters
         ----------
         parameter : type
@@ -1077,7 +1088,7 @@ class TOPSISAggregationFunction(ABC):
         boundary_values=None,
         **kwargs,
     ):
-        """ TO DO
+        """TO DO
         Parameters
         ----------
         parameter : type
@@ -1167,7 +1178,7 @@ class TOPSISAggregationFunction(ABC):
         popsize=None,
         n_generations=200,
     ):
-        """ TO DO
+        """TO DO
         Parameters
         ----------
         parameter : type
@@ -1249,7 +1260,7 @@ class TOPSISAggregationFunction(ABC):
 
     @staticmethod
     def solve_quadratic_equation(a, b, c):
-        """ TO DO
+        """TO DO
         Parameters
         ----------
         parameter : type
@@ -1269,7 +1280,7 @@ class TOPSISAggregationFunction(ABC):
     def choose_appropriate_solution(
         solution_1, solution_2, lower_bound, upper_bound, objective
     ):
-        """ TO DO
+        """TO DO
         Parameters
         ----------
         parameter : type
@@ -1308,6 +1319,7 @@ class PostFactumTopsisPymoo(Problem):
     attribute : type
         description
     """
+
     def __init__(
         self,
         topsis_model,
@@ -1366,11 +1378,12 @@ class ATOPSIS(TOPSISAggregationFunction):
     attribute : type
         description
     """
+
     def __init__(self, msd_transformer):
         super().__init__(msd_transformer)
 
     def TOPSIS_calculation(self, w, wm, wsd):
-        """ TO DO
+        """TO DO
         Parameters
         ----------
         parameter : type
@@ -1389,7 +1402,7 @@ class ATOPSIS(TOPSISAggregationFunction):
         feature_to_change,
         **kwargs,
     ):
-        """ TO DO
+        """TO DO
         Parameters
         ----------
         parameter : type
@@ -1471,7 +1484,7 @@ class ATOPSIS(TOPSISAggregationFunction):
         improvement_ratio,
         **kwargs,
     ):
-        """ TO DO
+        """TO DO
         Parameters
         ----------
         parameter : type
@@ -1535,11 +1548,12 @@ class ITOPSIS(TOPSISAggregationFunction):
     attribute : type
         description
     """
+
     def __init__(self, msd_transformer):
         super().__init__(msd_transformer)
 
     def TOPSIS_calculation(self, w, wm, wsd):
-        """ TO DO
+        """TO DO
         Parameters
         ----------
         parameter : type
@@ -1558,7 +1572,7 @@ class ITOPSIS(TOPSISAggregationFunction):
         feature_to_change,
         **kwargs,
     ):
-        """ TO DO
+        """TO DO
         Parameters
         ----------
         parameter : type
@@ -1640,7 +1654,7 @@ class ITOPSIS(TOPSISAggregationFunction):
         improvement_ratio,
         **kwargs,
     ):
-        """ TO DO
+        """TO DO
         Parameters
         ----------
         parameter : type
@@ -1704,11 +1718,12 @@ class RTOPSIS(TOPSISAggregationFunction):
     attribute : type
         description
     """
+
     def __init__(self, msd_transformer):
         super().__init__(msd_transformer)
 
     def TOPSIS_calculation(self, w, wm, wsd):
-        """ TO DO
+        """TO DO
         Parameters
         ----------
         parameter : type
@@ -1729,7 +1744,7 @@ class RTOPSIS(TOPSISAggregationFunction):
         feature_to_change,
         **kwargs,
     ):
-        """ TO DO
+        """TO DO
         Parameters
         ----------
         parameter : type
@@ -1816,7 +1831,7 @@ class RTOPSIS(TOPSISAggregationFunction):
         improvement_ratio,
         **kwargs,
     ):
-        """ TO DO
+        """TO DO
         Parameters
         ----------
         parameter : type
