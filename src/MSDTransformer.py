@@ -72,6 +72,7 @@ class MSDTransformer(TransformerMixin):
         self.X = X
         self.n = X.shape[0]  # n_alternatives
         self.m = X.shape[1]  # n_criteria
+        print(weights)
 
         self._original_weights = self.__check_weights(weights)
         self.weights = self._original_weights.copy()
@@ -96,6 +97,7 @@ class MSDTransformer(TransformerMixin):
             self._value_range.append(self.expert_range[c][1] - self.expert_range[c][0])
 
         self.weights = self.__normalize_weights(self.weights)
+        print(self.weights)
         self.X_new = self.__normalize_data(X.copy())
         self.__wmstd()
         self.X_new["AggFn"] = self.agg_fn.TOPSIS_calculation(
@@ -419,7 +421,18 @@ class MSDTransformer(TransformerMixin):
         -------
         TO DO
         """
-        if "Mean" in changes.columns:
+        if "Mean" in changes.columns and "Std" in changes.columns:
+            self.X_newPoint = self.X_new.copy()
+            self.X_newPoint.loc["NEW " + id] = self.X_newPoint.loc[id]
+            self.X_newPoint.loc["NEW " + id, "Mean"] += changes["Mean"].values[0]
+            self.X_newPoint.loc["NEW " + id, "Std"] += changes["Std"].values[0]
+            agg_value = self.agg_fn.TOPSIS_calculation(
+                np.mean(self.weights),
+                self.X_newPoint.loc["NEW " + id, "Mean"],
+                self.X_newPoint.loc["NEW " + id, "Std"],
+            )
+            self.X_newPoint.loc["NEW " + id, "AggFn"] = agg_value
+        elif "Mean" in changes.columns:
             self.X_newPoint = self.X_new.copy()
             self.X_newPoint.loc["NEW " + id] = self.X_newPoint.loc[id]
             self.X_newPoint.loc["NEW " + id, "Mean"] += changes["Mean"].values[0]
@@ -479,7 +492,7 @@ class MSDTransformer(TransformerMixin):
                 y=[self.X_new.loc[id, "Std"]],
                 showlegend=False,
                 mode="markers",
-                marker=dict(color="white", size=10),
+                marker=dict(color="black", size=10),
                 customdata=np.stack(([old_rank], [old_value]), axis=1),
                 text=["OLD " + id],
                 hovertemplate="<b>ID</b>: %{text}<br>"
@@ -538,14 +551,23 @@ class MSDTransformer(TransformerMixin):
                     font=dict(size=12),
                 )
         ### add line between old point and new point
-        fig.add_shape(
-            type="line",
-            x0=self.X_new.loc[id, "Mean"],
-            y0=self.X_new.loc[id, "Std"],
-            x1=self.X_newPoint.loc["NEW " + id, "Mean"],
-            y1=self.X_newPoint.loc["NEW " + id, "Std"],
-            line=dict(color="white", width=2),
+        fig.add_annotation(
+            x=self.X_newPoint.loc["NEW " + id, "Mean"],
+            y=self.X_newPoint.loc["NEW " + id, "Std"],
+            ax=self.X_new.loc[id, "Mean"],
+            ay=self.X_new.loc[id, "Std"],
+            xref='x',
+            yref='y',
+            axref='x',
+            ayref='y',
+            text='',
+            showarrow=True,
+            arrowhead=2,
+            arrowsize=1,
+            arrowwidth=2,
+            arrowcolor='white'
         )
+
         self.X_newPoint = self.X_newPoint.drop(index=("NEW " + id))
         values = self.X_newPoint["AggFn"].to_list()
 
