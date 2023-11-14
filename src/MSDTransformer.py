@@ -289,6 +289,9 @@ class MSDTransformer(TransformerMixin):
                 hoverinfo="none",
             ),
             layout=go.Layout(
+                autosize=False,
+                width=1000,
+                height=500,
                 title=go.layout.Title(text=plot_name, font_size=30),
                 title_x=0.5,
                 xaxis_range=[0.0, 1.0],
@@ -483,7 +486,7 @@ class MSDTransformer(TransformerMixin):
             self.X_new.sort_values(by="AggFn", ascending=False).index.get_loc(id) + 1
         )
         old_value = self.X_new.loc[id, "AggFn"]
-        fig = self.plot_background
+        fig = go.Figure(self.plot_background)
 
         ### add old point
         fig.add_trace(
@@ -1043,7 +1046,7 @@ class TOPSISAggregationFunction(ABC):
                         **kwargs,
                     )
             else:
-                while alternative_to_improve["Mean"] <= m_boundry:
+                while alternative_to_improve["Mean"] <= m_boundary:
                     if alternative_to_improve[
                         "Std"
                     ] <= self.msd_transformer.max_std_calculator(
