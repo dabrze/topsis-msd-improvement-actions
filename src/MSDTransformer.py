@@ -252,7 +252,7 @@ class MSDTransformer(TransformerMixin):
             alternative_to_improve, alternative_to_overcome, improvement_ratio, **kwargs
         )
 
-    def plot(self, heatmap_quality=500, show_names=False, plot_name=None):
+    def plot(self, heatmap_quality=500, show_names=False, plot_name=None, color='jet'):
         """
         Plots positions of alternatives in MSD space.
         """
@@ -276,7 +276,7 @@ class MSDTransformer(TransformerMixin):
                 z=agg_values,
                 zmin=0.0,
                 zmax=1.0,
-                colorscale="jet",
+                colorscale=color,
                 contours_coloring="heatmap",
                 line_width=0,
                 colorbar=dict(
@@ -289,9 +289,6 @@ class MSDTransformer(TransformerMixin):
                 hoverinfo="none",
             ),
             layout=go.Layout(
-                autosize=False,
-                width=1000,
-                height=500,
                 title=go.layout.Title(text=plot_name, font_size=30),
                 title_x=0.5,
                 xaxis_range=[0.0, 1.0],
