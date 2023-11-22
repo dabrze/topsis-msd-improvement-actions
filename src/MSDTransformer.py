@@ -72,7 +72,7 @@ class MSDTransformer(TransformerMixin):
         self.X = X
         self.n = X.shape[0]  # n_alternatives
         self.m = X.shape[1]  # n_criteria
-        print(weights)
+        #print(weights)
 
         self._original_weights = self.__check_weights(weights)
         self.weights = self._original_weights.copy()
@@ -97,7 +97,7 @@ class MSDTransformer(TransformerMixin):
             self._value_range.append(self.expert_range[c][1] - self.expert_range[c][0])
 
         self.weights = self.__normalize_weights(self.weights)
-        print(self.weights)
+        #print(self.weights)
         self.X_new = self.__normalize_data(X.copy())
         self.__wmstd()
         self.X_new["AggFn"] = self.agg_fn.TOPSIS_calculation(
@@ -291,8 +291,8 @@ class MSDTransformer(TransformerMixin):
             layout=go.Layout(
                 title=go.layout.Title(text=plot_name, font_size=30),
                 title_x=0.5,
-                xaxis_range=[0.0, 1.0],
-                yaxis_range=[0.0, 0.5],
+                xaxis_range=[0.0, np.mean(self.weights)],
+                yaxis_range=[0.0, np.mean(self.weights)/2],
             ),
         )
 
@@ -395,7 +395,7 @@ class MSDTransformer(TransformerMixin):
                 text=self.X_new.index.values,
                 hovertemplate="<b>ID</b>: %{text}<br>"
                 + "<b>Rank</b>: %{customdata[0]:f}<br>"
-                + "<b>AggFn</b>: %{customdata[1]:f}<br>"
+                + f"<b>{str(self.agg_fn)[16]}</b>: " "%{customdata[1]:f}<br>"
                 + "<extra></extra>",
             )
         )
@@ -498,7 +498,7 @@ class MSDTransformer(TransformerMixin):
                 hovertemplate="<b>ID</b>: %{text}<br>"
                 + "<b>Old Rank</b>: %{customdata[0]:f}<br>"
                 + "<b>New Rank</b>: -<br>"
-                + "<b>AggFn</b>: %{customdata[1]:f}<br>"
+                + f"<b>{str(self.agg_fn)[16]}</b>: " "%{customdata[1]:f}<br>"
                 + "<extra></extra>",
             )
         )
@@ -530,13 +530,13 @@ class MSDTransformer(TransformerMixin):
                 y=[self.X_newPoint.loc["NEW " + id, "Std"]],
                 showlegend=False,
                 mode="markers",
-                marker=dict(color="white", size=10),
+                marker=dict(color="white", size=10, line=dict(color='black', width=2)),
                 customdata=np.stack(([new_rank], [new_value]), axis=1),
                 text=["NEW " + id],
                 hovertemplate="<b>ID</b>: %{text}<br>"
                 + "<b>Old Rank</b>: -<br>"
                 + "<b>New Rank</b>: %{customdata[0]:f}<br>"
-                + "<b>AggFn</b>: %{customdata[1]:f}<br>"
+                + f"<b>{str(self.agg_fn)[16]}</b>: " "%{customdata[1]:f}<br>"
                 + "<extra></extra>",
             )
         )
@@ -550,7 +550,8 @@ class MSDTransformer(TransformerMixin):
                     showarrow=False,
                     font=dict(size=12),
                 )
-        ### add line between old point and new point
+
+        ### add background line between old point and new point
         fig.add_annotation(
             x=self.X_newPoint.loc["NEW " + id, "Mean"],
             y=self.X_newPoint.loc["NEW " + id, "Std"],
@@ -563,7 +564,24 @@ class MSDTransformer(TransformerMixin):
             text='',
             showarrow=True,
             arrowhead=2,
-            arrowsize=1,
+            arrowwidth=4,
+            arrowsize=0.7,
+            arrowcolor='black'
+        )
+
+        ### add line between old point and new point
+        fig.add_annotation(
+            x=self.X_newPoint.loc["NEW " + id, "Mean"] + (self.X_new.loc[id, "Mean"] - self.X_newPoint.loc["NEW " + id, "Mean"])*0.02,
+            y=self.X_newPoint.loc["NEW " + id, "Std"] + (self.X_new.loc[id, "Std"] - self.X_newPoint.loc["NEW " + id, "Std"])*0.02,
+            ax=self.X_new.loc[id, "Mean"],
+            ay=self.X_new.loc[id, "Std"],
+            xref='x',
+            yref='y',
+            axref='x',
+            ayref='y',
+            text='',
+            showarrow=True,
+            arrowhead=2,
             arrowwidth=2,
             arrowcolor='white'
         )
@@ -584,7 +602,7 @@ class MSDTransformer(TransformerMixin):
                 hovertemplate="<b>ID</b>: %{text}<br>"
                 + "<b>Old Rank</b>: %{customdata[0]:f}<br>"
                 + "<b>New Rank</b>: %{customdata[1]:f}<br>"
-                + "<b>AggFn</b>: %{customdata[2]:f}<br>"
+                + f"<b>{str(self.agg_fn)[16]}</b>: " "%{customdata[2]:f}<br>"
                 + "<extra></extra>",
             )
         )
