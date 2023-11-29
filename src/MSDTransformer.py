@@ -551,7 +551,7 @@ class MSDTransformer(TransformerMixin):
                     font=dict(size=12),
                 )
 
-        ### add background line between old point and new point
+        ### add arrow between old point and new point
         fig.add_annotation(
             x=self.X_newPoint.loc["NEW " + id, "Mean"],
             y=self.X_newPoint.loc["NEW " + id, "Std"],
@@ -564,26 +564,8 @@ class MSDTransformer(TransformerMixin):
             text='',
             showarrow=True,
             arrowhead=2,
-            arrowwidth=4,
-            arrowsize=0.7,
-            arrowcolor='black'
-        )
-
-        ### add line between old point and new point
-        fig.add_annotation(
-            x=self.X_newPoint.loc["NEW " + id, "Mean"] + (self.X_new.loc[id, "Mean"] - self.X_newPoint.loc["NEW " + id, "Mean"])*0.02,
-            y=self.X_newPoint.loc["NEW " + id, "Std"] + (self.X_new.loc[id, "Std"] - self.X_newPoint.loc["NEW " + id, "Std"])*0.02,
-            ax=self.X_new.loc[id, "Mean"],
-            ay=self.X_new.loc[id, "Std"],
-            xref='x',
-            yref='y',
-            axref='x',
-            ayref='y',
-            text='',
-            showarrow=True,
-            arrowhead=2,
             arrowwidth=2,
-            arrowcolor='white'
+            arrowcolor='black'
         )
 
         self.X_newPoint = self.X_newPoint.drop(index=("NEW " + id))
