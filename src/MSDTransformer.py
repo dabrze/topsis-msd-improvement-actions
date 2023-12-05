@@ -326,7 +326,8 @@ class MSDTransformer(TransformerMixin):
                 return np.sqrt(value_under_sqrt) / n
 
             means = np.linspace(0, 1, 10000)
-            perimeter = max_std(means, self.m)
+            half_perimeter = max_std(means[:len(means)//2], self.m)
+            perimeter = np.concatenate((half_perimeter, np.flip(half_perimeter)))   
         else:
             quality_exact = {
                 2: 125,
@@ -334,8 +335,9 @@ class MSDTransformer(TransformerMixin):
                 4: 75,
             }
             means = np.linspace(0, np.mean(self.weights), quality_exact.get(self.m, 50))
-            perimeter = [self.max_std_calculator(mean, self.weights) for mean in means]
-
+            half_perimeter = [self.max_std_calculator(mean, self.weights) for mean in means[:len(means)//2]]
+            perimeter = np.concatenate((half_perimeter, np.flip(half_perimeter)))
+            
         # draw upper perimeter
         fig.add_trace(
             go.Scatter(
