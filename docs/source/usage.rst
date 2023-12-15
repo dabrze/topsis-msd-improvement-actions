@@ -10,6 +10,6 @@ Usage
 .. autosummary::
   :toctree: generated
   
-  MSDtransformer
+  WMSDtransformer
   
 
