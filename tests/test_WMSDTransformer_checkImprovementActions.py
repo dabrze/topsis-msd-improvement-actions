@@ -1,4 +1,4 @@
-from src import MSDTransformer as msdt
+from src import WMSDTransformer as wmsdt
 import numpy as np
 import pandas as pd
 import pytest
@@ -13,8 +13,8 @@ def test_checkImprovedSign(df):
         "WinterCons" : "min",
         "OilCons" : "min",
         "HorsePower" : "max"}
-    agg_function = msdt.ITOPSIS
-    buses = msdt.MSDTransformer(agg_function)
+    agg_function = wmsdt.ITOPSIS
+    buses = wmsdt.WMSDTransformer(agg_function)
     buses.fit_transform(df, weights=None, objectives=objectives, expert_range=None)
     changes = buses.improvement(
         'improvement_features', 
@@ -37,8 +37,8 @@ def test_checkImprovedValue(df):
         "WinterCons" : "min",
         "OilCons" : "min",
         "HorsePower" : "max"}
-    agg_function = msdt.ITOPSIS
-    buses = msdt.MSDTransformer(agg_function)
+    agg_function = wmsdt.ITOPSIS
+    buses = wmsdt.WMSDTransformer(agg_function)
     buses.fit_transform(df, weights=None, objectives=objectives, expert_range=None)
     changes = buses.improvement(
         'improvement_features', 

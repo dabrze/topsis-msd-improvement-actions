@@ -12,10 +12,10 @@ from pymoo.operators.mutation.pm import PM
 from pymoo.optimize import minimize
 
 
-class MSDTransformer(TransformerMixin):
+class WMSDTransformer(TransformerMixin):
     """
     A class used to calculate TOPSIS ranking,
-    plot positions of alternatives in MSD space,
+    plot positions of alternatives in WMSD space,
     perform improvement actions on selected alternative.
 
     X : data-frame
@@ -254,7 +254,7 @@ class MSDTransformer(TransformerMixin):
 
     def plot(self, heatmap_quality=500, show_names=False, plot_name=None, color='jet'):
         """
-        Plots positions of alternatives in MSD space.
+        Plots positions of alternatives in WMSD space.
         """
 
         # for all possible mean and std count aggregation value and color it by it
@@ -822,7 +822,7 @@ class MSDTransformer(TransformerMixin):
 
         if not all(X.columns.values == self.X.columns.values):
             raise ValueError(
-                "New dataset must have the same columns as the dataset used to fit MSDTransformer"
+                "New dataset must have the same columns as the dataset used to fit WMSDTransformer"
             )
 
         lower_bound = np.array(X.min()).tolist()
@@ -911,8 +911,8 @@ class TOPSISAggregationFunction(ABC):
         description
     """
 
-    def __init__(self, msd_transformer):
-        self.msd_transformer = msd_transformer
+    def __init__(self, wmsd_transformer):
+        self.wmsd_transformer = wmsd_transformer
 
     @abstractmethod
     def TOPSIS_calculation(self, w, wm, wsd):
@@ -969,7 +969,7 @@ class TOPSISAggregationFunction(ABC):
                 "Invalid value at 'alternatie_to_improve': must be worse than alternative_to_overcome'"
             )
 
-        w = np.mean(self.msd_transformer.weights)
+        w = np.mean(self.wmsd_transformer.weights)
         m_start = alternative_to_improve["Mean"]
         m_boundary = w
         std_start = alternative_to_improve["Std"]
@@ -1005,15 +1005,15 @@ class TOPSISAggregationFunction(ABC):
                     )
                     if actual_aggfn >= alternative_to_overcome["AggFn"]:
                         change = change / 2
-            if alternative_to_improve["Std"] <= self.msd_transformer.max_std_calculator(
-                alternative_to_improve["Mean"], self.msd_transformer.weights
+            if alternative_to_improve["Std"] <= self.wmsd_transformer.max_std_calculator(
+                alternative_to_improve["Mean"], self.wmsd_transformer.weights
             ):
                 return pd.DataFrame(
                     [alternative_to_improve["Mean"] - m_start], columns=["Mean"]
                 )
             elif allow_std:
-                alternative_to_improve["Std"] = self.msd_transformer.max_std_calculator(
-                    alternative_to_improve["Mean"], self.msd_transformer.weights
+                alternative_to_improve["Std"] = self.wmsd_transformer.max_std_calculator(
+                    alternative_to_improve["Mean"], self.wmsd_transformer.weights
                 )
                 actual_aggfn = self.TOPSIS_calculation(
                     w, alternative_to_improve["Mean"], alternative_to_improve["Std"]
@@ -1048,8 +1048,8 @@ class TOPSISAggregationFunction(ABC):
                 while alternative_to_improve["Mean"] <= m_boundary:
                     if alternative_to_improve[
                         "Std"
-                    ] <= self.msd_transformer.max_std_calculator(
-                        alternative_to_improve["Mean"], self.msd_transformer.weights
+                    ] <= self.wmsd_transformer.max_std_calculator(
+                        alternative_to_improve["Mean"], self.wmsd_transformer.weights
                     ):
                         return pd.DataFrame(
                             [alternative_to_improve["Mean"] - m_start], columns=["Mean"]
@@ -1077,22 +1077,22 @@ class TOPSISAggregationFunction(ABC):
                     "Invalid value at 'boundary_values': must be same length as 'features_to_change'"
                 )
             for i in range(len(features_to_change)):
-                col = self.msd_transformer.X_new.columns.get_loc(features_to_change[i])
+                col = self.wmsd_transformer.X_new.columns.get_loc(features_to_change[i])
                 if (
-                    boundary_values[i] < self.msd_transformer.expert_range[col][0]
-                    or boundary_values[i] > self.msd_transformer.expert_range[col][1]
+                    boundary_values[i] < self.wmsd_transformer.expert_range[col][0]
+                    or boundary_values[i] > self.wmsd_transformer.expert_range[col][1]
                 ):
                     raise ValueError(
                         "Invalid value at 'boundary_values': must be between defined 'expert_range'"
                     )
                 else:
                     boundary_values[i] = (
-                        boundary_values[i] - self.msd_transformer.expert_range[col][0]
+                        boundary_values[i] - self.wmsd_transformer.expert_range[col][0]
                     ) / (
-                        self.msd_transformer.expert_range[col][1]
-                        - self.msd_transformer.expert_range[col][0]
+                        self.wmsd_transformer.expert_range[col][1]
+                        - self.wmsd_transformer.expert_range[col][0]
                     )
-                    if self.msd_transformer.objectives[col] == "min":
+                    if self.wmsd_transformer.objectives[col] == "min":
                         boundary_values[i] = 1 - boundary_values[i]
                     if (
                         alternative_to_improve[features_to_change[i]]
@@ -1135,16 +1135,16 @@ class TOPSISAggregationFunction(ABC):
         )
         improvement_start = alternative_to_improve.copy()
         feature_pointer = 0
-        w = self.msd_transformer.weights
-        value_range = self.msd_transformer._value_range
-        objectives = self.msd_transformer.objectives
+        w = self.wmsd_transformer.weights
+        value_range = self.wmsd_transformer._value_range
+        objectives = self.wmsd_transformer.objectives
 
         is_improvement_satisfactory = False
 
         s = np.sqrt(sum(w * w)) / np.mean(w)
         for i, k in zip(features_to_change, boundary_values):
             alternative_to_improve[i] = k
-            mean, std = self.msd_transformer.transform_US_to_wmsd(
+            mean, std = self.wmsd_transformer.transform_US_to_wmsd(
                 [alternative_to_improve]
             )
             AggFn = self.TOPSIS_calculation(np.mean(w), mean, std)
@@ -1153,7 +1153,7 @@ class TOPSISAggregationFunction(ABC):
                 continue
 
             alternative_to_improve[i] = 0.5 * k
-            mean, std = self.msd_transformer.transform_US_to_wmsd(
+            mean, std = self.wmsd_transformer.transform_US_to_wmsd(
                 [alternative_to_improve]
             )
             AggFn = self.TOPSIS_calculation(np.mean(w), mean, std)
@@ -1167,7 +1167,7 @@ class TOPSISAggregationFunction(ABC):
                     is_improvement_satisfactory = True
                     break
                 change_ratio = change_ratio / 2
-                mean, std = self.msd_transformer.transform_US_to_wmsd(
+                mean, std = self.wmsd_transformer.transform_US_to_wmsd(
                     [alternative_to_improve]
                 )
                 AggFn = self.TOPSIS_calculation(np.mean(w), mean, std)
@@ -1221,23 +1221,23 @@ class TOPSISAggregationFunction(ABC):
             .copy()
         )
         modified_criteria_subset = [
-            x in features_to_change for x in self.msd_transformer.X.columns.tolist()
+            x in features_to_change for x in self.wmsd_transformer.X.columns.tolist()
         ]
 
         max_possible_improved = current_performances_US.copy()
         max_possible_improved[modified_criteria_subset] = boundary_values
-        w_means, w_stds = self.msd_transformer.transform_US_to_wmsd(
+        w_means, w_stds = self.wmsd_transformer.transform_US_to_wmsd(
             np.array([max_possible_improved])
         )
         max_possible_agg_value = self.TOPSIS_calculation(
-            np.mean(self.msd_transformer.weights), w_means, w_stds
+            np.mean(self.wmsd_transformer.weights), w_means, w_stds
         ).item()
         if max_possible_agg_value < alternative_to_overcome["AggFn"]:
             # print(f"Not possible to achieve target {alternative_to_overcome['AggFn']} with specified features and boundary_values. Max possible agg value is {max_possible_agg_value}")
             return None
 
         problem = PostFactumTopsisPymoo(
-            topsis_model=self.msd_transformer,
+            topsis_model=self.wmsd_transformer,
             modified_criteria_subset=modified_criteria_subset,
             current_performances=current_performances_US,
             target_agg_value=alternative_to_overcome["AggFn"],
@@ -1271,13 +1271,13 @@ class TOPSISAggregationFunction(ABC):
             improvement_actions[:, modified_criteria_subset] = (
                 res.F - current_performances_US[modified_criteria_subset]
             )
-            improvement_actions *= np.array(self.msd_transformer._value_range)
+            improvement_actions *= np.array(self.wmsd_transformer._value_range)
             improvement_actions[
-                :, np.array(self.msd_transformer.objectives) == "min"
+                :, np.array(self.wmsd_transformer.objectives) == "min"
             ] *= -1
             return pd.DataFrame(
                 sorted(improvement_actions.tolist(), key=lambda x: x[0]),
-                columns=self.msd_transformer.X.columns,
+                columns=self.wmsd_transformer.X.columns,
             )
         else:
             return None
@@ -1403,8 +1403,8 @@ class ATOPSIS(TOPSISAggregationFunction):
         description
     """
 
-    def __init__(self, msd_transformer):
-        super().__init__(msd_transformer)
+    def __init__(self, wmsd_transformer):
+        super().__init__(wmsd_transformer)
 
     def TOPSIS_calculation(self, w, wm, wsd):
         """TO DO
@@ -1442,10 +1442,10 @@ class ATOPSIS(TOPSISAggregationFunction):
             .copy()
         )
         performances_CS = (
-            performances_US * self.msd_transformer._value_range
-            + self.msd_transformer._lower_bounds
+            performances_US * self.wmsd_transformer._value_range
+            + self.wmsd_transformer._lower_bounds
         )
-        weights = self.msd_transformer.weights
+        weights = self.wmsd_transformer.weights
         target_agg_value = (
             alternative_to_overcome["AggFn"] + improvement_ratio / 2
         ) * np.linalg.norm(weights)
@@ -1453,10 +1453,10 @@ class ATOPSIS(TOPSISAggregationFunction):
         modified_criterion_idx = list(
             alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).index
         ).index(feature_to_change)
-        criterion_range = self.msd_transformer._value_range[modified_criterion_idx]
-        lower_bound = self.msd_transformer._lower_bounds[modified_criterion_idx]
+        criterion_range = self.wmsd_transformer._value_range[modified_criterion_idx]
+        lower_bound = self.wmsd_transformer._lower_bounds[modified_criterion_idx]
         upper_bound = lower_bound + criterion_range
-        objective = self.msd_transformer.objectives[modified_criterion_idx]
+        objective = self.wmsd_transformer.objectives[modified_criterion_idx]
 
         # Negative Ideal Solution (utility space)
         NIS = np.zeros_like(performances_US)
@@ -1497,7 +1497,7 @@ class ATOPSIS(TOPSISAggregationFunction):
                 modification_vector = np.zeros_like(performances_US)
                 modification_vector[modified_criterion_idx] = feature_modification
                 result_df = pd.DataFrame(
-                    [modification_vector], columns=self.msd_transformer.X.columns
+                    [modification_vector], columns=self.wmsd_transformer.X.columns
                 )
                 return result_df
 
@@ -1522,10 +1522,10 @@ class ATOPSIS(TOPSISAggregationFunction):
                 "Invalid value at 'alternatie_to_improve': must be worse than alternative_to_overcome'"
             )
 
-        w = np.mean(self.msd_transformer.weights)
+        w = np.mean(self.wmsd_transformer.weights)
         std_start = alternative_to_improve["Std"]
-        sd_boundary = self.msd_transformer.max_std_calculator(
-            alternative_to_improve["Mean"], self.msd_transformer.weights
+        sd_boundary = self.wmsd_transformer.max_std_calculator(
+            alternative_to_improve["Mean"], self.wmsd_transformer.weights
         )
         if (
             self.TOPSIS_calculation(w, alternative_to_improve["Mean"], sd_boundary)
@@ -1573,8 +1573,8 @@ class ITOPSIS(TOPSISAggregationFunction):
         description
     """
 
-    def __init__(self, msd_transformer):
-        super().__init__(msd_transformer)
+    def __init__(self, wmsd_transformer):
+        super().__init__(wmsd_transformer)
 
     def TOPSIS_calculation(self, w, wm, wsd):
         """TO DO
@@ -1612,10 +1612,10 @@ class ITOPSIS(TOPSISAggregationFunction):
             .copy()
         )
         performances_CS = (
-            performances_US * self.msd_transformer._value_range
-            + self.msd_transformer._lower_bounds
+            performances_US * self.wmsd_transformer._value_range
+            + self.wmsd_transformer._lower_bounds
         )
-        weights = self.msd_transformer.weights
+        weights = self.wmsd_transformer.weights
         target_agg_value = (
             1 - (alternative_to_overcome["AggFn"] + improvement_ratio / 2)
         ) * np.linalg.norm(weights)
@@ -1623,10 +1623,10 @@ class ITOPSIS(TOPSISAggregationFunction):
         modified_criterion_idx = list(
             alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).index
         ).index(feature_to_change)
-        criterion_range = self.msd_transformer._value_range[modified_criterion_idx]
-        lower_bound = self.msd_transformer._lower_bounds[modified_criterion_idx]
+        criterion_range = self.wmsd_transformer._value_range[modified_criterion_idx]
+        lower_bound = self.wmsd_transformer._lower_bounds[modified_criterion_idx]
         upper_bound = lower_bound + criterion_range
-        objective = self.msd_transformer.objectives[modified_criterion_idx]
+        objective = self.wmsd_transformer.objectives[modified_criterion_idx]
 
         # Positive Ideal Solution (utility space)
         PIS = weights
@@ -1667,7 +1667,7 @@ class ITOPSIS(TOPSISAggregationFunction):
                 modification_vector = np.zeros_like(performances_US)
                 modification_vector[modified_criterion_idx] = feature_modification
                 result_df = pd.DataFrame(
-                    [modification_vector], columns=self.msd_transformer.X.columns
+                    [modification_vector], columns=self.wmsd_transformer.X.columns
                 )
                 return result_df
 
@@ -1692,10 +1692,10 @@ class ITOPSIS(TOPSISAggregationFunction):
                 "Invalid value at 'alternatie_to_improve': must be worse than alternative_to_overcome'"
             )
 
-        w = np.mean(self.msd_transformer.weights)
+        w = np.mean(self.wmsd_transformer.weights)
         std_start = alternative_to_improve["Std"]
-        sd_boundary = self.msd_transformer.max_std_calculator(
-            alternative_to_improve["Mean"], self.msd_transformer.weights
+        sd_boundary = self.wmsd_transformer.max_std_calculator(
+            alternative_to_improve["Mean"], self.wmsd_transformer.weights
         )
         if (
             self.TOPSIS_calculation(w, alternative_to_improve["Mean"], 0)
@@ -1743,8 +1743,8 @@ class RTOPSIS(TOPSISAggregationFunction):
         description
     """
 
-    def __init__(self, msd_transformer):
-        super().__init__(msd_transformer)
+    def __init__(self, wmsd_transformer):
+        super().__init__(wmsd_transformer)
 
     def TOPSIS_calculation(self, w, wm, wsd):
         """TO DO
@@ -1784,19 +1784,19 @@ class RTOPSIS(TOPSISAggregationFunction):
             .copy()
         )
         performances_CS = (
-            performances_US * self.msd_transformer._value_range
-            + self.msd_transformer._lower_bounds
+            performances_US * self.wmsd_transformer._value_range
+            + self.wmsd_transformer._lower_bounds
         )
-        weights = self.msd_transformer.weights
+        weights = self.wmsd_transformer.weights
         target_agg_value = alternative_to_overcome["AggFn"] + improvement_ratio / 2
 
         modified_criterion_idx = list(
             alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).index
         ).index(feature_to_change)
-        criterion_range = self.msd_transformer._value_range[modified_criterion_idx]
-        lower_bound = self.msd_transformer._lower_bounds[modified_criterion_idx]
+        criterion_range = self.wmsd_transformer._value_range[modified_criterion_idx]
+        lower_bound = self.wmsd_transformer._lower_bounds[modified_criterion_idx]
         upper_bound = lower_bound + criterion_range
-        objective = self.msd_transformer.objectives[modified_criterion_idx]
+        objective = self.wmsd_transformer.objectives[modified_criterion_idx]
 
         # Positive and Negative Ideal Solution (utility space)
         PIS = weights
@@ -1844,7 +1844,7 @@ class RTOPSIS(TOPSISAggregationFunction):
             modification_vector = np.zeros_like(performances_US)
             modification_vector[modified_criterion_idx] = feature_modification
             result_df = pd.DataFrame(
-                [modification_vector], columns=self.msd_transformer.X.columns
+                [modification_vector], columns=self.wmsd_transformer.X.columns
             )
             return result_df
 
@@ -1869,10 +1869,10 @@ class RTOPSIS(TOPSISAggregationFunction):
                 "Invalid value at 'alternatie_to_improve': must be worse than alternative_to_overcome'"
             )
 
-        w = np.mean(self.msd_transformer.weights)
+        w = np.mean(self.wmsd_transformer.weights)
         std_start = alternative_to_improve["Std"]
-        sd_boundary = self.msd_transformer.max_std_calculator(
-            alternative_to_improve["Mean"], self.msd_transformer.weights
+        sd_boundary = self.wmsd_transformer.max_std_calculator(
+            alternative_to_improve["Mean"], self.wmsd_transformer.weights
         )
         if alternative_to_improve["Mean"] < w / 2:
             if (
