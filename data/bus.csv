@@ -1,4 +1,4 @@
-﻿BusId;MaxSpeed;ComprPressure;Blacking;Torque;SummerCons;WinterCons;OilCons;HorsePower
+﻿Bus;Speed;Pressure;Blacking;Torque;Summer;Winter;Oil;HP
 b01;90;2;49;477;21;25;1;138
 b02;85;2;52;460;21;25;1;130
 b03;72;2;73;425;23;27;2;112
