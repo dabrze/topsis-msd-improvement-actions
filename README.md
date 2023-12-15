@@ -1,17 +1,17 @@
 # TOPSIS ranking and interpretation using WMSD-space
 ![](https://github.com/dabrze/topsis-msd-improvement-actions/actions/workflows/build.yml/badge.svg)
 
-This repository hosts the code for **MSDTransformer** - a scikit-learn compatible python library, that lets you create TOPSIS rankings of alternatives, visualize rankings in WMSD space, and get suggestions for improvement actions. 
-<!-- Check out the project's [documentation](https://msdtransformer.readthedocs.io/en/latest/index.html) to learn more about using the MSDTransformer.  -->
+This repository hosts the code for **WMSDTransformer** - a scikit-learn compatible python library, that lets you create TOPSIS rankings of alternatives, visualize rankings in WMSD space, and get suggestions for improvement actions. 
+<!-- Check out the project's [documentation](https://msdtransformer.readthedocs.io/en/latest/index.html) to learn more about using the WMSDTransformer.  -->
 
 ## Requirements
 
-MSDTransformer uses PySCIPOpt to determine exact WMSD boundaries quickly. If you use conda, you should be fine performing the follwoing command (easier option):
+WMSDTransformer uses PySCIPOpt to determine exact WMSD boundaries quickly. If you use conda, you should be fine performing the follwoing command (easier option):
 ```console
 conda install --channel conda-forge pyscipopt
 ``` 
 If you use PyPI, then you will need a working installation of the [SCIP Optimization
-Suite](https://www.scipopt.org/) (harder option, but might run faster). Please, make sure that your SCIP installation works, before installing MSDTransformer. For more details on how to install SCIP, please refer to the [PySCIPOpt documentation](https://github.com/scipopt/PySCIPOpt/blob/master/INSTALL.md).
+Suite](https://www.scipopt.org/) (harder option, but might run faster). Please, make sure that your SCIP installation works, before installing WMSDTransformer. For more details on how to install SCIP, please refer to the [PySCIPOpt documentation](https://github.com/scipopt/PySCIPOpt/blob/master/INSTALL.md).
 
 After installing PySCIPOpt (or if you already have SCIP installed), you can install the other dependencies by running:
 ```console
@@ -24,12 +24,12 @@ pip install -r requirements.txt
 This is the simplest (one-command) install method is to run the following command in your terminal:
 
 ```console
-pip install MSDtransformer
+pip install WMSDtransformer
 ```
 
 ### From source -->
 
-Once you have all the dependencies, you can install MSDTransformer from source. To do so, clone the repository and run the following command in the root directory of the repository:
+Once you have all the dependencies, you can install WMSDTransformer from source. To do so, clone the repository and run the following command in the root directory of the repository:
 
 ```console
 pip install .
@@ -39,10 +39,10 @@ pip install .
 
 ```python
 import pandas as pd
-from MSDTransformer import MSDTransformer
+from WMSDTransformer import WMSDTransformer
 
 df = pd.read_csv("../data/students.csv", sep=';', index_col= 0)
-students_transformer = MSDTransformer("R") # Relative distance
+students_transformer = WMSDTransformer("R") # Relative distance
 students_transformer.fit(df, expert_range=[[0,100],[1,6],[1,6]])
 students_transformer.transform(df)
 ```
@@ -59,7 +59,7 @@ students_transformer.show_ranking()
 students_transformer.plot()
 ```
 
-![MSD plot](notebooks/figures/quickstart_plot.png)
+![WMSD plot](notebooks/figures/quickstart_plot.png)
 
 ## Citation
 
