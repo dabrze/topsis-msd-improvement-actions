@@ -10,7 +10,7 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('../..'))
 
-project = 'MSDTransformer'
+project = 'WMSDTransformer'
 copyright = '2023, Adam Ciesiółka, Bogna Kilanowska, Maciej Woś'
 author = 'Adam Ciesiółka, Bogna Kilanowska, Maciej Woś'
 
