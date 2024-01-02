@@ -4,7 +4,7 @@ Installation
 Requirements
 ------------
 .. _requirements:
-
+* `CNN <http://cnn.com>`_
 * dataclasses
 * numpy 1.26.0 or newer
 * pandas 1.5 or newer
