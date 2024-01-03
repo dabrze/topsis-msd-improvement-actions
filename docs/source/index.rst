@@ -5,14 +5,15 @@
 
 Welcome to WMSDTransformer's documentation!
 ==========================================
+.. _welcome:
 
 .. automodule:: src.WMSDTransformer.WMSDTransformer
     :members:
 
-**WMSDTransformer** is a Python library for visualisations and actions in WMSD space.
+**WMSDTransformer** is a Python library for visualizations and actions in WMSD space.
 
 Check out the :doc:`usage` section for further information. For guide how to install the library
-chcek the :ref:`installation` section.
+check the :ref:`installation` section.
 
 .. note::
 
@@ -20,6 +21,7 @@ chcek the :ref:`installation` section.
  
 Contents
 --------
+.. _contents:
 .. toctree::
 
    Home <self>
@@ -29,6 +31,7 @@ Contents
 
 Indices and tables
 ==================
+.. _indices_and_tables:
 
 * :ref:`genindex`
 * :ref:`modindex`
