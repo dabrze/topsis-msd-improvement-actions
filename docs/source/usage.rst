@@ -1,14 +1,16 @@
 Usage
 =====
+Usage examples
+==============
 
 .. usage::
 
-  :toctree:
+.. toctree::
   methods
   tutorial
   
 .. autosummary::
-  :toctree: generated
+.. toctree:: generated
   
   WMSDtransformer
   
