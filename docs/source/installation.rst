@@ -15,7 +15,7 @@ Requirements
 * `gurobipy <https://support.gurobi.com/hc/en-us/articles/360044290292-How-do-I-install-Gurobi-for-Python->`_ 10.0 or newer
 * instead of gurobi `pyscipopt <https://pypi.org/project/PySCIPOpt/>`_ ver. 4.3.0
 
-Instructions
+Installation instructions
 ------------
 .. _installation:
 

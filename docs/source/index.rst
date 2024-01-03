@@ -23,6 +23,7 @@ Contents
 --------
 .. _contents:
 .. toctree::
+   :maxdepth: 1
 
    Home <self>
    installation
