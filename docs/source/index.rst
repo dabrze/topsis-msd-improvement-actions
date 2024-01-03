@@ -21,6 +21,7 @@ chcek the :ref:`installation` section.
 Contents
 --------
 .. toctree::
+   :maxdepth: 1
 
    Home <self>
    installation
