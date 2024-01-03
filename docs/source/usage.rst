@@ -26,7 +26,7 @@ using the *fit_transform()* method.
     wmsd_transformer.fit_transform(your_dataframe)
 
 Showing TOPSIS ranking
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^
 
 After fitting and transforming data, you can run *show_ranking()* method
 to show a TOPSIS ranking.
@@ -36,7 +36,7 @@ to show a TOPSIS ranking.
     wmsd_transformer.show_ranking()
 
 Showing TOPSIS results in WMSD space
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To print a plot visualizing TOPSIS results in WMSD Space, you need to run *plot()* method.
 
