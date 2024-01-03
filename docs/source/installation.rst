@@ -16,7 +16,7 @@ Requirements
 * instead of gurobi `pyscipopt <https://pypi.org/project/PySCIPOpt/>`_ ver. 4.3.0
 
 Installation instructions
-------------
+-------------------------
 .. _installation:
 
 To use WMSDTransformer, first you need to download a zip file from the project's site: https://github.com/dabrze/topsis-msd-improvement-actions
