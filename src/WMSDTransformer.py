@@ -113,7 +113,7 @@ class WMSDTransformer(TransformerMixin):
         return self.X_new
 
     def __transform_US_to_wmsd(self, X_US):
-        
+
         # transform data from Utility Space to WMSD Space
         w = self.weights
         s = np.linalg.norm(w) / np.mean(w)
@@ -173,42 +173,6 @@ class WMSDTransformer(TransformerMixin):
 
         # print(f"Result shape {filtered_points.shape}")
         return pd.DataFrame(filtered_points, columns=self.X.columns)
-
-    def improvement(
-        self,
-        function_name,
-        alternative_to_improve,
-        alternative_to_overcome,
-        improvement_ratio=0.000001,
-        **kwargs,
-    ):
-        """TO DO
-        Parameters
-        ----------
-        parameter : type
-            description
-        Returns
-        -------
-        TO DO
-        """
-        if type(alternative_to_improve) == int:
-            alternative_to_improve = self.X_new.loc[
-                self._ranked_alternatives[alternative_to_improve]
-            ].copy()
-        elif type(alternative_to_improve) == str:
-            alternative_to_improve = self.X_new.loc[alternative_to_improve].copy()
-
-        if type(alternative_to_overcome) == int:
-            alternative_to_overcome = self.X_new.loc[
-                self._ranked_alternatives[alternative_to_overcome]
-            ].copy()
-        elif type(alternative_to_overcome) == str:
-            alternative_to_overcome = self.X_new.loc[alternative_to_overcome].copy()
-
-        func = getattr(self.agg_fn, function_name)
-        return func(
-            alternative_to_improve, alternative_to_overcome, improvement_ratio, **kwargs
-        )
 
     def plot(self, heatmap_quality=500, show_names=False, plot_name=None, color='jet'):
         """

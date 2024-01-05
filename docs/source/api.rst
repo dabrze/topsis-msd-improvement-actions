@@ -9,8 +9,6 @@ API
 
 .. autofunction:: src.WMSDTransformer.WMSDTransformer.inverse_transform
 
-.. autofunction:: src.WMSDTransformer.WMSDTransformer.improvement
-
 .. autofunction:: src.WMSDTransformer.WMSDTransformer.plot
 
 .. autofunction:: src.WMSDTransformer.WMSDTransformer.update_for_plot
