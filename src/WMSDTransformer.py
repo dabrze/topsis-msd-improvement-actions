@@ -111,21 +111,22 @@ class WMSDTransformer(TransformerMixin):
         return self
 
     def transform(self, X):
-        """TO DO
+        """Transform data from data-frame X to WMSD space.
         Parameters
         ----------
-        parameter : type
-            description
+
+        X : pandas data-frame
+            Data frame that contains data to be transformed.
         Returns
         -------
-        TO DO
+        Pandas data-frame.
         """
         if not self._isFitted:
             raise Exception("fit is required before transform")
 
         self.__check_input_after_transform(X)
         X_transformed = self.__normalize_data(X.copy())
-        w_means, w_stds = self.transform_US_to_wmsd(np.array(X_transformed))
+        w_means, w_stds = self.__transform_US_to_wmsd(np.array(X_transformed))
         agg_values = self.agg_fn.TOPSIS_calculation(
             np.mean(self.weights), w_means, w_stds
         )
@@ -455,7 +456,7 @@ class WMSDTransformer(TransformerMixin):
         return self.X_newPoint
 
     def plot2(self, id, changes, show_names=False, change_number=0):
-        """TO DO
+        """Plots positinos 
         Parameters
         ----------
         parameter : type
