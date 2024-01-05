@@ -42,33 +42,7 @@ class WMSDTransformer(TransformerMixin):
         self.max_std_calculator = self.__check_max_std_calculator(max_std_calculator)
         self._isFitted = False
 
-    def fit(self, X, weights=None, objectives=None, expert_range=None):
-        """Checks input data and normalizes it.
-        Parameters
-        ----------
-        none : none
-        X : data-frame
-            Pandas data-frame provided by the user.
-            Apart of column and row names all values must be numerical.
-        weights : np.array of float, optional
-            Numpy array of criteria' weights.
-            Its length must be equal to self.n.
-            (default: np.ones())
-        objectives : list or dict or str, optional
-            Numpy array informing which criteria are cost type and which are gain type.
-            It can be passed as:
-            - list of length equal to self.n. in which each element describes type of one criterion:
-            'cost'/'c'/'min' for cost type criteria and 'gain'/'g'/'max' for gain type criteria.
-            - dictionary of size equal to self.n in which each key is the criterion name and ech value takes one of the following values:
-            'cost'/'c'/'min' for cost type criteria and 'gain'/'g'/'max' for gain type criteria.
-            - a string which describes type of all criteria:
-            'cost'/'c'/'min' if criteria are cost type and 'gain'/'g'/'max' if criteria are gain type.
-            (default: list of 'max')
-        expert_range : 2D list or dictionary, optional
-            For each criterion must be provided minimal and maximal value.
-            All criteria must fit in range [minimal, maximal]
-            (default: 2D list of minimal and maximal values among provided criteria)
-        """
+    def __fit(self, X, weights=None, objectives=None, expert_range=None):
         self.X = X
         self.n = X.shape[0]  # n_alternatives
         self.m = X.shape[1]  # n_criteria
@@ -109,16 +83,33 @@ class WMSDTransformer(TransformerMixin):
         return self
 
     def fit_transform(self, X, weights=None, objectives=None, expert_range=None):
-        """TO DO
+        """Checks input data and normalizes it.
         Parameters
         ----------
-        parameter : type
-            description
-        Returns
-        -------
-        TO DO
+        none : none
+        X : data-frame
+            Pandas data-frame provided by the user.
+            Apart of column and row names all values must be numerical.
+        weights : np.array of float, optional
+            Numpy array of criteria' weights.
+            Its length must be equal to self.n.
+            (default: np.ones())
+        objectives : list or dict or str, optional
+            Numpy array informing which criteria are cost type and which are gain type.
+            It can be passed as:
+            - list of length equal to self.n. in which each element describes type of one criterion:
+            'cost'/'c'/'min' for cost type criteria and 'gain'/'g'/'max' for gain type criteria.
+            - dictionary of size equal to self.n in which each key is the criterion name and ech value takes one of the following values:
+            'cost'/'c'/'min' for cost type criteria and 'gain'/'g'/'max' for gain type criteria.
+            - a string which describes type of all criteria:
+            'cost'/'c'/'min' if criteria are cost type and 'gain'/'g'/'max' if criteria are gain type.
+            (default: list of 'max')
+        expert_range : 2D list or dictionary, optional
+            For each criterion must be provided minimal and maximal value.
+            All criteria must fit in range [minimal, maximal]
+            (default: 2D list of minimal and maximal values among provided criteria)
         """
-        self.fit(X, weights, objectives, expert_range)
+        self.__fit(X, weights, objectives, expert_range)
         return self.X_new
 
     def transform(self, X):
