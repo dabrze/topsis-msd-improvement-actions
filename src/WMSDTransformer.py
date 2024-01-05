@@ -273,7 +273,7 @@ class WMSDTransformer(TransformerMixin):
                 contours_coloring="heatmap",
                 line_width=0,
                 colorbar=dict(
-                    title="Aggregation value",
+                    title=str(self.agg_fn)[16],
                     titleside="right",
                     outlinewidth=1,
                     title_font_size=22,
@@ -455,7 +455,7 @@ class WMSDTransformer(TransformerMixin):
             self.X_newPoint["AggFn"] = agg_values
         return self.X_newPoint
 
-    def plot2(self, id, changes, show_names=False, change_number=0):
+    def plot_improvement(self, id, changes, show_names=False, change_number=0):
         """Plots positinos 
         Parameters
         ----------
