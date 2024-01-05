@@ -86,7 +86,7 @@ class WMSDTransformer(TransformerMixin):
         """Checks input data and normalizes it.
         Parameters
         ----------
-        none : none
+        
         X : data-frame
             Pandas data-frame provided by the user.
             Apart of column and row names all values must be numerical.
@@ -175,8 +175,25 @@ class WMSDTransformer(TransformerMixin):
         return pd.DataFrame(filtered_points, columns=self.X.columns)
 
     def plot(self, heatmap_quality=500, show_names=False, plot_name=None, color='jet'):
-        """
-        Plots positions of alternatives in WMSD space.
+
+        """Plots positions of alternatives in WMSD space.
+        Parameters
+        ----------
+        heatmap_quality : int, optional
+            Integer value of the precision of the heatmap. The higher, the heatmap more fills the plot, but the plot generates longer.
+            (default: 500)
+        show_names : bool, optional
+            Boolean value, if true, then points labels are showed on a plot.
+            (default: False)
+        plot_name : str, optional
+            String that contains a title of a plot. If None, then in place of title, weights of criteria will be shown.
+            (default: None)
+        color : str, optional
+            String that contains a name of a color-scale in which the plot will be presented.
+            (default: 'jet')
+        Returns
+        -------
+        Plot as an plotly figure.
         """
 
         # for all possible mean and std count aggregation value and color it by it
