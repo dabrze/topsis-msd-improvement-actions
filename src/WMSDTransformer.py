@@ -112,16 +112,8 @@ class WMSDTransformer(TransformerMixin):
         self.__fit(X, weights, objectives, expert_range)
         return self.X_new
 
-    def transform_US_to_wmsd(self, X_US):
-        """TO DO
-        Parameters
-        ----------
-        parameter : type
-            description
-        Returns
-        -------
-        TO DO
-        """
+    def __transform_US_to_wmsd(self, X_US):
+        
         # transform data from Utility Space to WMSD Space
         w = self.weights
         s = np.linalg.norm(w) / np.mean(w)
@@ -152,7 +144,7 @@ class WMSDTransformer(TransformerMixin):
         grid = np.meshgrid(*dims)
         points = np.column_stack([xx.ravel() for xx in grid])
         # print(f"{len(points)} samples generated in total")
-        w_means, w_stds = self.transform_US_to_wmsd(points)
+        w_means, w_stds = self.__transform_US_to_wmsd(points)
 
         if std_type == "==":
             filtered_points = points[
@@ -427,7 +419,7 @@ class WMSDTransformer(TransformerMixin):
             self.X_newPoint = self.X.copy()
             self.X_newPoint = self.X_newPoint.append(new_row)
             self.X_newPoint = self.__normalize_data(self.X_newPoint)
-            w_means, w_stds = self.transform_US_to_wmsd(np.array(self.X_newPoint))
+            w_means, w_stds = self.__transform_US_to_wmsd(np.array(self.X_newPoint))
             agg_values = self.agg_fn.TOPSIS_calculation(
                 np.mean(self.weights), w_means, w_stds
             )
@@ -1110,7 +1102,7 @@ class TOPSISAggregationFunction(ABC):
         s = np.sqrt(sum(w * w)) / np.mean(w)
         for i, k in zip(features_to_change, boundary_values):
             alternative_to_improve[i] = k
-            mean, std = self.wmsd_transformer.transform_US_to_wmsd(
+            mean, std = self.wmsd_transformer.__transform_US_to_wmsd(
                 [alternative_to_improve]
             )
             AggFn = self.TOPSIS_calculation(np.mean(w), mean, std)
@@ -1119,7 +1111,7 @@ class TOPSISAggregationFunction(ABC):
                 continue
 
             alternative_to_improve[i] = 0.5 * k
-            mean, std = self.wmsd_transformer.transform_US_to_wmsd(
+            mean, std = self.wmsd_transformer.__transform_US_to_wmsd(
                 [alternative_to_improve]
             )
             AggFn = self.TOPSIS_calculation(np.mean(w), mean, std)
@@ -1133,7 +1125,7 @@ class TOPSISAggregationFunction(ABC):
                     is_improvement_satisfactory = True
                     break
                 change_ratio = change_ratio / 2
-                mean, std = self.wmsd_transformer.transform_US_to_wmsd(
+                mean, std = self.wmsd_transformer.__transform_US_to_wmsd(
                     [alternative_to_improve]
                 )
                 AggFn = self.TOPSIS_calculation(np.mean(w), mean, std)
@@ -1192,7 +1184,7 @@ class TOPSISAggregationFunction(ABC):
 
         max_possible_improved = current_performances_US.copy()
         max_possible_improved[modified_criteria_subset] = boundary_values
-        w_means, w_stds = self.wmsd_transformer.transform_US_to_wmsd(
+        w_means, w_stds = self.wmsd_transformer.__transform_US_to_wmsd(
             np.array([max_possible_improved])
         )
         max_possible_agg_value = self.TOPSIS_calculation(
@@ -1333,7 +1325,7 @@ class PostFactumTopsisPymoo(Problem):
         modified_performances[
             :, self.modified_criteria_subset
         ] = x.copy()  # this copy might be redundant
-        w_means, w_stds = self.topsis_model.transform_US_to_wmsd(modified_performances)
+        w_means, w_stds = self.topsis_model.__transform_US_to_wmsd(modified_performances)
         agg_values = self.topsis_model.agg_fn.TOPSIS_calculation(
             self.mean_of_weights, w_means, w_stds
         )

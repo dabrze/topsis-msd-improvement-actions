@@ -7,8 +7,6 @@ API
 
 .. autofunction:: src.WMSDTransformer.WMSDTransformer.fit_transform
 
-.. autofunction:: src.WMSDTransformer.WMSDTransformer.transform_US_to_wmsd
-
 .. autofunction:: src.WMSDTransformer.WMSDTransformer.inverse_transform
 
 .. autofunction:: src.WMSDTransformer.WMSDTransformer.improvement
