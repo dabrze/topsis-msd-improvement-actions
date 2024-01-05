@@ -645,7 +645,7 @@ class WMSDTransformer(TransformerMixin):
         function_name,
         alternative_to_improve,
         alternative_to_overcome,
-        improvement_ratio=0.000001,
+        epsilon=0.000001,
         **kwargs,
     ):
         """TO DO
@@ -673,7 +673,7 @@ class WMSDTransformer(TransformerMixin):
 
         func = getattr(self.agg_fn, function_name)
         return func(
-            alternative_to_improve, alternative_to_overcome, improvement_ratio, **kwargs
+            alternative_to_improve, alternative_to_overcome, epsilon, **kwargs
         )
 
     def __check_max_std_calculator(self, max_std_calculator):
@@ -961,7 +961,7 @@ class TOPSISAggregationFunction(ABC):
         self,
         alternative_to_improve,
         alternative_to_overcome,
-        improvement_ratio,
+        epsilon,
         feature_to_change,
         **kwargs,
     ):
@@ -980,7 +980,7 @@ class TOPSISAggregationFunction(ABC):
         self,
         alternative_to_improve,
         alternative_to_overcome,
-        improvement_ratio,
+        epsilon,
         allow_std=False,
         **kwargs,
     ):
@@ -1016,7 +1016,7 @@ class TOPSISAggregationFunction(ABC):
                 if actual_aggfn >= alternative_to_overcome["AggFn"]:
                     if (
                         actual_aggfn - alternative_to_overcome["AggFn"]
-                        > improvement_ratio
+                        > epsilon
                     ):
                         alternative_to_improve["Mean"] -= change
                         change = change / 2
@@ -1069,7 +1069,7 @@ class TOPSISAggregationFunction(ABC):
                     ) + self.improvement_mean(
                         alternative_to_improve,
                         alternative_to_overcome,
-                        improvement_ratio,
+                        epsilon,
                         allow_std,
                         **kwargs,
                     )
@@ -1083,7 +1083,7 @@ class TOPSISAggregationFunction(ABC):
                         return pd.DataFrame(
                             [alternative_to_improve["Mean"] - m_start], columns=["Mean"]
                         )
-                    alternative_to_improve["Mean"] += improvement_ratio
+                    alternative_to_improve["Mean"] += epsilon
                 return None
 
     def __check_boundary_values(
@@ -1136,7 +1136,7 @@ class TOPSISAggregationFunction(ABC):
         self,
         alternative_to_improve,
         alternative_to_overcome,
-        improvement_ratio,
+        epsilon,
         features_to_change,
         boundary_values=None,
         **kwargs,
@@ -1190,7 +1190,7 @@ class TOPSISAggregationFunction(ABC):
             while True:
                 if AggFn < alternative_to_overcome["AggFn"]:
                     alternative_to_improve[i] += change_ratio
-                elif AggFn - alternative_to_overcome["AggFn"] > improvement_ratio:
+                elif AggFn - alternative_to_overcome["AggFn"] > epsilon:
                     alternative_to_improve[i] -= change_ratio
                 else:
                     is_improvement_satisfactory = True
@@ -1224,7 +1224,7 @@ class TOPSISAggregationFunction(ABC):
         self,
         alternative_to_improve,
         alternative_to_overcome,
-        improvement_ratio,
+        epsilon,
         features_to_change,
         boundary_values=None,
         allow_deterioration=False,
@@ -1453,7 +1453,7 @@ class ATOPSIS(TOPSISAggregationFunction):
         self,
         alternative_to_improve,
         alternative_to_overcome,
-        improvement_ratio,
+        epsilon,
         feature_to_change,
         **kwargs,
     ):
@@ -1478,7 +1478,7 @@ class ATOPSIS(TOPSISAggregationFunction):
         )
         weights = self.wmsd_transformer.weights
         target_agg_value = (
-            alternative_to_overcome["AggFn"] + improvement_ratio / 2
+            alternative_to_overcome["AggFn"] + epsilon / 2
         ) * np.linalg.norm(weights)
 
         modified_criterion_idx = list(
@@ -1536,7 +1536,7 @@ class ATOPSIS(TOPSISAggregationFunction):
         self,
         alternative_to_improve,
         alternative_to_overcome,
-        improvement_ratio,
+        epsilon,
         **kwargs,
     ):
         """TO DO
@@ -1572,7 +1572,7 @@ class ATOPSIS(TOPSISAggregationFunction):
                 if actual_aggfn > alternative_to_overcome["AggFn"]:
                     if (
                         actual_aggfn - alternative_to_overcome["AggFn"]
-                        > improvement_ratio
+                        > epsilon
                     ):
                         alternative_to_improve["Std"] -= change
                         change = change / 2
@@ -1623,7 +1623,7 @@ class ITOPSIS(TOPSISAggregationFunction):
         self,
         alternative_to_improve,
         alternative_to_overcome,
-        improvement_ratio,
+        epsilon,
         feature_to_change,
         **kwargs,
     ):
@@ -1648,7 +1648,7 @@ class ITOPSIS(TOPSISAggregationFunction):
         )
         weights = self.wmsd_transformer.weights
         target_agg_value = (
-            1 - (alternative_to_overcome["AggFn"] + improvement_ratio / 2)
+            1 - (alternative_to_overcome["AggFn"] + epsilon / 2)
         ) * np.linalg.norm(weights)
 
         modified_criterion_idx = list(
@@ -1706,7 +1706,7 @@ class ITOPSIS(TOPSISAggregationFunction):
         self,
         alternative_to_improve,
         alternative_to_overcome,
-        improvement_ratio,
+        epsilon,
         **kwargs,
     ):
         """TO DO
@@ -1742,7 +1742,7 @@ class ITOPSIS(TOPSISAggregationFunction):
                 if actual_aggfn > alternative_to_overcome["AggFn"]:
                     if (
                         actual_aggfn - alternative_to_overcome["AggFn"]
-                        > improvement_ratio
+                        > epsilon
                     ):
                         alternative_to_improve["Std"] += change
                         change = change / 2
@@ -1795,7 +1795,7 @@ class RTOPSIS(TOPSISAggregationFunction):
         self,
         alternative_to_improve,
         alternative_to_overcome,
-        improvement_ratio,
+        epsilon,
         feature_to_change,
         **kwargs,
     ):
@@ -1819,7 +1819,7 @@ class RTOPSIS(TOPSISAggregationFunction):
             + self.wmsd_transformer._lower_bounds
         )
         weights = self.wmsd_transformer.weights
-        target_agg_value = alternative_to_overcome["AggFn"] + improvement_ratio / 2
+        target_agg_value = alternative_to_overcome["AggFn"] + epsilon / 2
 
         modified_criterion_idx = list(
             alternative_to_improve.drop(labels=["Mean", "Std", "AggFn"]).index
@@ -1883,7 +1883,7 @@ class RTOPSIS(TOPSISAggregationFunction):
         self,
         alternative_to_improve,
         alternative_to_overcome,
-        improvement_ratio,
+        epsilon,
         **kwargs,
     ):
         """TO DO
@@ -1920,7 +1920,7 @@ class RTOPSIS(TOPSISAggregationFunction):
                     if actual_aggfn > alternative_to_overcome["AggFn"]:
                         if (
                             actual_aggfn - alternative_to_overcome["AggFn"]
-                            > improvement_ratio
+                            > epsilon
                         ):
                             alternative_to_improve["Std"] -= change
                             change = change / 2
@@ -1959,7 +1959,7 @@ class RTOPSIS(TOPSISAggregationFunction):
                     if actual_aggfn > alternative_to_overcome["AggFn"]:
                         if (
                             actual_aggfn - alternative_to_overcome["AggFn"]
-                            > improvement_ratio
+                            > epsilon
                         ):
                             alternative_to_improve["Std"] += change
                             change = change / 2
