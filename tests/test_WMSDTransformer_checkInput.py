@@ -9,7 +9,7 @@ def test_checkInput_weights(weights, df):
     agg_function = wmsdt.ITOPSIS
     buses = wmsdt.WMSDTransformer(agg_function)
     with pytest.raises(ValueError) as err_info:
-        buses.fit_transform(df, weights=weights, objectives=objectives, expert_range=None)
+        buses.fit(df, weights=weights, objectives=objectives, expert_range=None)
     assert err_info.type is ValueError
 
 @pytest.mark.parametrize("objectives", [(['max', 'max', 'min', 'max', 'min', 'min', 'min']), (['max', 'max', 'min', 'test', 'min', 'min', 'min', 'max'])])
@@ -17,7 +17,7 @@ def test_checkInput_objectives(objectives, df):
     agg_function = wmsdt.ITOPSIS
     buses = wmsdt.WMSDTransformer(agg_function)
     with pytest.raises(ValueError) as err_info:
-        buses.fit_transform(df, weights=None, objectives=objectives, expert_range=None)
+        buses.fit(df, weights=None, objectives=objectives, expert_range=None)
     assert err_info.type is ValueError
 
 @pytest.mark.parametrize("expert_range", [([[0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1]]),
@@ -29,5 +29,5 @@ def test_checkInput_expert_range(expert_range, df):
     agg_function = wmsdt.ITOPSIS
     buses = wmsdt.WMSDTransformer(agg_function)
     with pytest.raises(ValueError) as err_info:
-        buses.fit_transform(df, weights=None, objectives=objectives, expert_range=expert_range)
+        buses.fit(df, weights=None, objectives=objectives, expert_range=expert_range)
     assert err_info.type is ValueError

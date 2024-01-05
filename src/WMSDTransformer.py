@@ -42,7 +42,35 @@ class WMSDTransformer(TransformerMixin):
         self.max_std_calculator = self.__check_max_std_calculator(max_std_calculator)
         self._isFitted = False
 
-    def __fit(self, X, weights=None, objectives=None, expert_range=None):
+    def fit(self, X, weights=None, objectives=None, expert_range=None):
+
+        """Checks input data and normalizes it.
+        Parameters
+        ----------
+        
+        X : data-frame
+            Pandas data-frame provided by the user.
+            Apart of column and row names all values must be numerical.
+        weights : np.array of float, optional
+            Numpy array of criteria' weights.
+            Its length must be equal to self.n.
+            (default: np.ones())
+        objectives : list or dict or str, optional
+            Numpy array informing which criteria are cost type and which are gain type.
+            It can be passed as:
+            - list of length equal to self.n. in which each element describes type of one criterion:
+            'cost'/'c'/'min' for cost type criteria and 'gain'/'g'/'max' for gain type criteria.
+            - dictionary of size equal to self.n in which each key is the criterion name and ech value takes one of the following values:
+            'cost'/'c'/'min' for cost type criteria and 'gain'/'g'/'max' for gain type criteria.
+            - a string which describes type of all criteria:
+            'cost'/'c'/'min' if criteria are cost type and 'gain'/'g'/'max' if criteria are gain type.
+            (default: list of 'max')
+        expert_range : 2D list or dictionary, optional
+            For each criterion must be provided minimal and maximal value.
+            All criteria must fit in range [minimal, maximal]
+            (default: 2D list of minimal and maximal values among provided criteria)
+        """
+
         self.X = X
         self.n = X.shape[0]  # n_alternatives
         self.m = X.shape[1]  # n_criteria
@@ -83,7 +111,7 @@ class WMSDTransformer(TransformerMixin):
         return self
 
     def fit_transform(self, X, weights=None, objectives=None, expert_range=None):
-        """Checks input data and normalizes it.
+        """Runs fit() method.
         Parameters
         ----------
         
@@ -109,7 +137,7 @@ class WMSDTransformer(TransformerMixin):
             All criteria must fit in range [minimal, maximal]
             (default: 2D list of minimal and maximal values among provided criteria)
         """
-        self.__fit(X, weights, objectives, expert_range)
+        self.fit(X, weights, objectives, expert_range)
         return self.X_new
 
     def __transform_US_to_wmsd(self, X_US):
@@ -1255,10 +1283,28 @@ class PostFactumTopsisPymoo(Problem):
     ...
     Attributes
     ----------
-    attribute : type
+
+    topsis_model : object
+        Object with methods to calculate weighted means, weighted standard deviations and aggregation values (e.g. WMSDTransformer object).
+    modified_criteria_subset : numpy array of bools
+        description
+    current_performances : object
+        description
+    target_agg_value : object
+        description
+    upper_bounds : object
+        description
+    allow_deterioration : object
         description
     """
 
+    """
+    topsis_model -- to jest tak naprawdę obiekt WMSDTransformer, ale to może być cokolwiek innego, byleby umiało policzyć w_means w_stds oraz agg_values (w sumie wystarczyłoby to ostatnie), ta klasa działała wcześniej bez tego całego WMSD w przestrzeni ocen, potem ją dostosowałem, bo jak implementowałem takie rzeczy do swoich badań
+    modified_criteria_subset -- to jest odpowiednik z heurystyki Adama, tylko że zamiast listy stringów to jest bool-owski np.array o długości n_criteria, używam tego do szybkiego slice-owania tablic np.array
+    current_performances oraz target_agg_value -- te chyba nie wymagają wyjaśnienia, zobaczcie tylko jakiego typu obiekty to są, jeśli potrzeba to wam wyjaśnię kiedyś na głosowym
+    upper_bounds -- to jest odpowiednik boundary_values z heurystyki Adama, uwaga na postać i długość tej tablicy
+    allow_deterioration -- to chyba można wywalić, bo tej funkcjonalności w bibliotece ostatecznie nie będzie
+    """
     def __init__(
         self,
         topsis_model,
