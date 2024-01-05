@@ -7,9 +7,6 @@ Welcome to WMSDTransformer's documentation!
 ==========================================
 .. _welcome:
 
-.. automodule:: src.WMSDTransformer.WMSDTransformer
-    :members:
-
 **WMSDTransformer** is a Python library for visualizations and actions in WMSD space.
 
 Check out the :doc:`usage` section for further information. For guide how to install the library
