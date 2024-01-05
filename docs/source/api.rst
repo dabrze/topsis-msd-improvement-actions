@@ -5,8 +5,6 @@ API
 
 .. autofunction:: src.WMSDTransformer.WMSDTransformer.__init__
 
-.. autofunction:: src.WMSDTransformer.WMSDTransformer.fit
-
 .. autofunction:: src.WMSDTransformer.WMSDTransformer.fit_transform
 
 .. autofunction:: src.WMSDTransformer.WMSDTransformer.transform
