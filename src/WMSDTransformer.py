@@ -456,14 +456,22 @@ class WMSDTransformer(TransformerMixin):
         return self.X_newPoint
 
     def plot_improvement(self, id, changes, show_names=False, change_number=0):
-        """Plots positinos 
+        """Plots positions of alternatives in WMSD space and visualize the change after applying improvement action. 
         Parameters
         ----------
-        parameter : type
-            description
+        id : string
+            String value containing the name of the alternative to improve.
+        change : pandas Data-frame
+            Data-frame with the improvement action changes
+        show_names : bool, optional
+            Boolean value, if true, then points labels are showed on a plot.
+                (default: False)
+        change_number : int, optional
+            Integer value indicating which change should be applied to plot, if there are more than 1.
+            (default: 0)
         Returns
         -------
-        TO DO
+        Plot as an plotly figure.
         """
         self.__update_for_plot(id, changes, change_number)
         old_rank = (
