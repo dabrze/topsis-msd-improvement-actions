@@ -527,7 +527,7 @@ class WMSDTransformer(TransformerMixin):
         """Displays the TOPSIS ranking
         Parameters
         ----------
-        none : none
+        
         mode : 'minimal'/'standard'/'full', optional
             Way of display of the ranking. If mode='minimal', then only positions
             of ranked alternatives will be displayed. If mode='standard' then additionally
