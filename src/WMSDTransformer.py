@@ -112,31 +112,6 @@ class WMSDTransformer(TransformerMixin):
         self.__fit(X, weights, objectives, expert_range)
         return self.X_new
 
-    def transform(self, X):
-        """TO DO
-        Parameters
-        ----------
-        parameter : type
-            description
-        Returns
-        -------
-        TO DO
-        """
-        if not self._isFitted:
-            raise Exception("fit is required before transform")
-
-        self.__check_input_after_transform(X)
-        X_transformed = self.__normalize_data(X.copy())
-        w_means, w_stds = self.transform_US_to_wmsd(np.array(X_transformed))
-        agg_values = self.agg_fn.TOPSIS_calculation(
-            np.mean(self.weights), w_means, w_stds
-        )
-        X_transformed["Mean"] = w_means
-        X_transformed["Std"] = w_stds
-        X_transformed["AggFn"] = agg_values
-
-        return X_transformed
-
     def transform_US_to_wmsd(self, X_US):
         """TO DO
         Parameters
