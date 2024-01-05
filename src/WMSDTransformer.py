@@ -1283,16 +1283,8 @@ class TOPSISAggregationFunction(ABC):
             return None
 
     @staticmethod
-    def solve_quadratic_equation(a, b, c):
-        """TO DO
-        Parameters
-        ----------
-        parameter : type
-            description
-        Returns
-        -------
-        TO DO
-        """
+    def __solve_quadratic_equation(a, b, c):
+
         discriminant = b**2 - 4 * a * c
         if discriminant < 0:
             return None
@@ -1301,18 +1293,10 @@ class TOPSISAggregationFunction(ABC):
         return solution_1, solution_2
 
     @staticmethod
-    def choose_appropriate_solution(
+    def __choose_appropriate_solution(
         solution_1, solution_2, lower_bound, upper_bound, objective
     ):
-        """TO DO
-        Parameters
-        ----------
-        parameter : type
-            description
-        Returns
-        -------
-        TO DO
-        """
+        
         solution_1_is_feasible = upper_bound > solution_1 > lower_bound
         solution_2_is_feasible = upper_bound > solution_2 > lower_bound
         if solution_1_is_feasible:
@@ -1475,7 +1459,7 @@ class ATOPSIS(TOPSISAggregationFunction):
             - target_agg_value**2
         )
 
-        solutions = TOPSISAggregationFunction.solve_quadratic_equation(
+        solutions = TOPSISAggregationFunction.__solve_quadratic_equation(
             a, b, c
         )  # solutions are new performances in VS, not modifications
         if solutions is None:
@@ -1487,7 +1471,7 @@ class ATOPSIS(TOPSISAggregationFunction):
             solution_2 = ((solutions[1] / weights[j]) * criterion_range) + lower_bound
 
             # solution -- new performances in CS
-            solution = TOPSISAggregationFunction.choose_appropriate_solution(
+            solution = TOPSISAggregationFunction.__choose_appropriate_solution(
                 solution_1, solution_2, lower_bound, upper_bound, objective
             )
             if solution is None:
@@ -1645,7 +1629,7 @@ class ITOPSIS(TOPSISAggregationFunction):
             - target_agg_value**2
         )
 
-        solutions = TOPSISAggregationFunction.solve_quadratic_equation(
+        solutions = TOPSISAggregationFunction.__solve_quadratic_equation(
             a, b, c
         )  # solutions are new performances in VS, not modifications
         if solutions is None:
@@ -1657,7 +1641,7 @@ class ITOPSIS(TOPSISAggregationFunction):
             solution_2 = ((solutions[1] / weights[j]) * criterion_range) + lower_bound
 
             # solution -- new performances in CS
-            solution = TOPSISAggregationFunction.choose_appropriate_solution(
+            solution = TOPSISAggregationFunction.__choose_appropriate_solution(
                 solution_1, solution_2, lower_bound, upper_bound, objective
             )
             if solution is None:
@@ -1822,7 +1806,7 @@ class RTOPSIS(TOPSISAggregationFunction):
         )
         c = (v_ij[j] - NIS[j]) ** 2 - k * (v_ij[j] - PIS[j]) ** 2 - p
 
-        solutions = TOPSISAggregationFunction.solve_quadratic_equation(
+        solutions = TOPSISAggregationFunction.__solve_quadratic_equation(
             a, b, c
         )  # solutions are performance modifications in CS !!!
         if solutions is None:
@@ -1834,7 +1818,7 @@ class RTOPSIS(TOPSISAggregationFunction):
             solution_2 = solutions[1] + performances_CS[j]
 
         # solution -- new performances in CS
-        solution = TOPSISAggregationFunction.choose_appropriate_solution(
+        solution = TOPSISAggregationFunction.__choose_appropriate_solution(
             solution_1, solution_2, lower_bound, upper_bound, objective
         )
         if solution is None:

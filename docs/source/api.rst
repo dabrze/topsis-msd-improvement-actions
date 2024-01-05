@@ -37,10 +37,6 @@ API
 
 .. autofunction:: src.WMSDTransformer.TOPSISAggregationFunction.improvement_genetic
 
-.. autofunction:: src.WMSDTransformer.TOPSISAggregationFunction.solve_quadratic_equation
-
-.. autofunction:: src.WMSDTransformer.TOPSISAggregationFunction.choose_appropriate_solution
-
 .. autoclass:: src.WMSDTransformer.PostFactumTopsisPymoo
 
 .. autoclass:: src.WMSDTransformer.ATOPSIS
