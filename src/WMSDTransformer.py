@@ -631,6 +631,43 @@ class WMSDTransformer(TransformerMixin):
         display(ranking.drop(["Mean", "Std", "AggFn"], axis=1))
         return
 
+    def improvement(
+        self,
+        function_name,
+        alternative_to_improve,
+        alternative_to_overcome,
+        improvement_ratio=0.000001,
+        **kwargs,
+    ):
+        """TO DO
+        Parameters
+        ----------
+        parameter : type
+            description
+        Returns
+        -------
+        TO DO
+        """
+        if type(alternative_to_improve) == int:
+            alternative_to_improve = self.X_new.loc[
+                self._ranked_alternatives[alternative_to_improve]
+            ].copy()
+        elif type(alternative_to_improve) == str:
+            alternative_to_improve = self.X_new.loc[alternative_to_improve].copy()
+
+        if type(alternative_to_overcome) == int:
+            alternative_to_overcome = self.X_new.loc[
+                self._ranked_alternatives[alternative_to_overcome]
+            ].copy()
+        elif type(alternative_to_overcome) == str:
+            alternative_to_overcome = self.X_new.loc[alternative_to_overcome].copy()
+
+        func = getattr(self.agg_fn, function_name)
+        return func(
+            alternative_to_improve, alternative_to_overcome, improvement_ratio, **kwargs
+        )
+
+
     def __check_max_std_calculator(self, max_std_calculator):
         if isinstance(max_std_calculator, str):
             if max_std_calculator == "scip":
