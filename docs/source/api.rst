@@ -11,8 +11,6 @@ API
 
 .. autofunction:: src.WMSDTransformer.WMSDTransformer.plot
 
-.. autofunction:: src.WMSDTransformer.WMSDTransformer.update_for_plot
-
 .. autofunction:: src.WMSDTransformer.WMSDTransformer.plot2
 
 .. autofunction:: src.WMSDTransformer.WMSDTransformer.show_ranking

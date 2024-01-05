@@ -352,16 +352,8 @@ class WMSDTransformer(TransformerMixin):
                 )
         return fig
 
-    def update_for_plot(self, id, changes, change_number):
-        """TO DO
-        Parameters
-        ----------
-        parameter : type
-            description
-        Returns
-        -------
-        TO DO
-        """
+    def __update_for_plot(self, id, changes, change_number):
+
         if "Mean" in changes.columns and "Std" in changes.columns:
             self.X_newPoint = self.X_new.copy()
             self.X_newPoint.loc["NEW " + id] = self.X_newPoint.loc[id]
@@ -419,7 +411,7 @@ class WMSDTransformer(TransformerMixin):
         -------
         TO DO
         """
-        self.update_for_plot(id, changes, change_number)
+        self.__update_for_plot(id, changes, change_number)
         old_rank = (
             self.X_new.sort_values(by="AggFn", ascending=False).index.get_loc(id) + 1
         )
