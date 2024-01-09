@@ -1046,7 +1046,7 @@ class TOPSISAggregationFunction(ABC):
                 else:
                     inverse_solutions = self.wmsd_transformer.inverse_transform(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
                     reduced_solutions = self.reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
-                    return pd.DataFrame(reduced_solutions, columns=alternative_to_improve.index[:-3])
+                    result = pd.DataFrame(reduced_solutions, columns=alternative_to_improve.index[:-3])
             elif allow_std:
                 alternative_to_improve["Std"] = self.wmsd_transformer.max_std_calculator(
                     alternative_to_improve["Mean"], self.wmsd_transformer.weights
@@ -1068,7 +1068,7 @@ class TOPSISAggregationFunction(ABC):
                     else:
                         inverse_solutions = self.wmsd_transformer.inverse_transform(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
                         reduced_solutions = self.reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
-                        return pd.DataFrame(reduced_solutions, columns=alternative_to_improve.index[:-3])
+                        result = pd.DataFrame(reduced_solutions, columns=alternative_to_improve.index[:-3])
                 else:
                     if solutions_number is None:
                         return pd.DataFrame(
@@ -1109,9 +1109,27 @@ class TOPSISAggregationFunction(ABC):
                         else:
                             inverse_solutions = self.wmsd_transformer.inverse_transform(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
                             reduced_solutions = self.reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
-                            return pd.DataFrame(reduced_solutions, columns=alternative_to_improve.index[:-3])
+                            result =  pd.DataFrame(reduced_solutions, columns=alternative_to_improve.index[:-3])
+                            break
                     alternative_to_improve["Mean"] += epsilon
-                return None
+                else:
+                    return None
+            objectives = self.wmsd_transformer.objectives
+            value_range = self.wmsd_transformer._value_range
+            result -= alternative_to_improve[:-3]
+            for i in result.index:
+                for j in range(len(result.columns)):
+                    if result[result.columns[j]][i] == 0:
+                        continue
+                    elif objectives[j] == "max":
+                        result[result.columns[j]][i] = (
+                            value_range[j] * result[result.columns[j]][i]
+                        )
+                    else:
+                        result[j][i] = (
+                            -value_range[j] * result[result.columns[j]][i]
+                        )
+            return result
 
     def __check_boundary_values(
         self, alternative_to_improve, features_to_change, boundary_values
@@ -1636,7 +1654,23 @@ class ATOPSIS(TOPSISAggregationFunction):
             else:
                 inverse_solutions = self.wmsd_transformer.inverse_transform(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
                 reduced_solutions = self.reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
-                return pd.DataFrame(reduced_solutions, columns=alternative_to_improve.index[:-3])
+                result = pd.DataFrame(reduced_solutions, columns=alternative_to_improve.index[:-3])
+            objectives = self.wmsd_transformer.objectives
+            value_range = self.wmsd_transformer._value_range
+            result -= alternative_to_improve[:-3]
+            for i in result.index:
+                for j in range(len(result.columns)):
+                    if result[result.columns[j]][i] == 0:
+                        continue
+                    elif objectives[j] == "max":
+                        result[result.columns[j]][i] = (
+                            value_range[j] * result[result.columns[j]][i]
+                        )
+                    else:
+                        result[j][i] = (
+                            -value_range[j] * result[result.columns[j]][i]
+                        )
+            return result
 
 
 class ITOPSIS(TOPSISAggregationFunction):
@@ -1812,7 +1846,23 @@ class ITOPSIS(TOPSISAggregationFunction):
             else:
                 inverse_solutions = self.wmsd_transformer.inverse_transform(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
                 reduced_solutions = self.reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
-                return pd.DataFrame(reduced_solutions, columns=alternative_to_improve.index[:-3])
+                result = pd.DataFrame(reduced_solutions, columns=alternative_to_improve.index[:-3])
+            objectives = self.wmsd_transformer.objectives
+            value_range = self.wmsd_transformer._value_range
+            result -= alternative_to_improve[:-3]
+            for i in result.index:
+                for j in range(len(result.columns)):
+                    if result[result.columns[j]][i] == 0:
+                        continue
+                    elif objectives[j] == "max":
+                        result[result.columns[j]][i] = (
+                            value_range[j] * result[result.columns[j]][i]
+                        )
+                    else:
+                        result[j][i] = (
+                            -value_range[j] * result[result.columns[j]][i]
+                        )
+            return result
 
 
 class RTOPSIS(TOPSISAggregationFunction):
@@ -2000,7 +2050,7 @@ class RTOPSIS(TOPSISAggregationFunction):
                 else:
                     inverse_solutions = self.wmsd_transformer.inverse_transform(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
                     reduced_solutions = self.reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
-                    return pd.DataFrame(reduced_solutions, columns=alternative_to_improve.index[:-3])
+                    result = pd.DataFrame(reduced_solutions, columns=alternative_to_improve.index[:-3])
         else:
             if (
                 self.TOPSIS_calculation(w, alternative_to_improve["Mean"], 0)
@@ -2042,4 +2092,20 @@ class RTOPSIS(TOPSISAggregationFunction):
                 else:
                     inverse_solutions = self.wmsd_transformer.inverse_transform(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
                     reduced_solutions = self.reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
-                    return pd.DataFrame(reduced_solutions, columns=alternative_to_improve.index[:-3])
+                    result = pd.DataFrame(reduced_solutions, columns=alternative_to_improve.index[:-3])
+            objectives = self.wmsd_transformer.objectives
+            value_range = self.wmsd_transformer._value_range
+            result -= alternative_to_improve[:-3]
+            for i in result.index:
+                for j in range(len(result.columns)):
+                    if result[result.columns[j]][i] == 0:
+                        continue
+                    elif objectives[j] == "max":
+                        result[result.columns[j]][i] = (
+                            value_range[j] * result[result.columns[j]][i]
+                        )
+                    else:
+                        result[j][i] = (
+                            -value_range[j] * result[result.columns[j]][i]
+                        )
+            return result
