@@ -995,7 +995,7 @@ class TOPSISAggregationFunction(ABC):
         -------
         TO DO
         """
-        if alternative_to_improve[str(self.agg_fn.letter)] >= alternative_to_overcome[str(self.agg_fn.letter)]:
+        if alternative_to_improve[str(self.letter)] >= alternative_to_overcome[str(self.letter)]:
             raise ValueError(
                 "Invalid value at 'alternatie_to_improve': must be worse than alternative_to_overcome'"
             )
@@ -1006,7 +1006,7 @@ class TOPSISAggregationFunction(ABC):
         std_start = alternative_to_improve["Std"]
         if (
             self.TOPSIS_calculation(w, m_boundary, alternative_to_improve["Std"])
-            < alternative_to_overcome[str(self.agg_fn.letter)]
+            < alternative_to_overcome[str(self.letter)]
         ):
             return None
         else:
@@ -1015,9 +1015,9 @@ class TOPSISAggregationFunction(ABC):
                 w, alternative_to_improve["Mean"], alternative_to_improve["Std"]
             )
             while True:
-                if actual_aggfn >= alternative_to_overcome[str(self.agg_fn.letter)]:
+                if actual_aggfn >= alternative_to_overcome[str(self.letter)]:
                     if (
-                        actual_aggfn - alternative_to_overcome[str(self.agg_fn.letter)]
+                        actual_aggfn - alternative_to_overcome[str(self.letter)]
                         > epsilon
                     ):
                         alternative_to_improve["Mean"] -= change
@@ -1034,7 +1034,7 @@ class TOPSISAggregationFunction(ABC):
                     actual_aggfn = self.TOPSIS_calculation(
                         w, alternative_to_improve["Mean"], alternative_to_improve["Std"]
                     )
-                    if actual_aggfn >= alternative_to_overcome[str(self.agg_fn.letter)]:
+                    if actual_aggfn >= alternative_to_overcome[str(self.letter)]:
                         change = change / 2
             if alternative_to_improve["Std"] <= self.wmsd_transformer.max_std_calculator(
                 alternative_to_improve["Mean"], self.wmsd_transformer.weights
@@ -1054,7 +1054,7 @@ class TOPSISAggregationFunction(ABC):
                 actual_aggfn = self.TOPSIS_calculation(
                     w, alternative_to_improve["Mean"], alternative_to_improve["Std"]
                 )
-                if actual_aggfn >= alternative_to_overcome[str(self.agg_fn.letter)]:
+                if actual_aggfn >= alternative_to_overcome[str(self.letter)]:
                     if solutions_number is None:
                         return pd.DataFrame(
                             [
@@ -1195,7 +1195,7 @@ class TOPSISAggregationFunction(ABC):
         -------
         TO DO
         """
-        if alternative_to_improve[str(self.agg_fn.letter)] >= alternative_to_overcome[str(self.agg_fn.letter)]:
+        if alternative_to_improve[str(self.letter)] >= alternative_to_overcome[str(self.letter)]:
             raise ValueError(
                 "Invalid value at 'alternatie_to_improve': must be worse than alternative_to_overcome'"
             )
@@ -1203,9 +1203,9 @@ class TOPSISAggregationFunction(ABC):
             alternative_to_improve, features_to_change, boundary_values
         )
 
-        AggFn = alternative_to_improve[str(self.agg_fn.letter)]
+        AggFn = alternative_to_improve[str(self.letter)]
         alternative_to_improve = alternative_to_improve.drop(
-            labels=["Mean", "Std", str(self.agg_fn.letter)]
+            labels=["Mean", "Std", str(self.letter)]
         )
         improvement_start = alternative_to_improve.copy()
         feature_pointer = 0
@@ -1223,7 +1223,7 @@ class TOPSISAggregationFunction(ABC):
             )
             AggFn = self.TOPSIS_calculation(np.mean(w), mean, std)
 
-            if AggFn < alternative_to_overcome[str(self.agg_fn.letter)]:
+            if AggFn < alternative_to_overcome[str(self.letter)]:
                 continue
 
             alternative_to_improve[i] = 0.5 * k
@@ -1233,9 +1233,9 @@ class TOPSISAggregationFunction(ABC):
             AggFn = self.TOPSIS_calculation(np.mean(w), mean, std)
             change_ratio = 0.25 * k
             while True:
-                if AggFn < alternative_to_overcome[str(self.agg_fn.letter)]:
+                if AggFn < alternative_to_overcome[str(self.letter)]:
                     alternative_to_improve[i] += change_ratio
-                elif AggFn - alternative_to_overcome[str(self.agg_fn.letter)] > epsilon:
+                elif AggFn - alternative_to_overcome[str(self.letter)] > epsilon:
                     alternative_to_improve[i] -= change_ratio
                 else:
                     is_improvement_satisfactory = True
@@ -1290,7 +1290,7 @@ class TOPSISAggregationFunction(ABC):
         )
 
         current_performances_US = (
-            alternative_to_improve.drop(labels=["Mean", "Std", str(self.agg_fn.letter)])
+            alternative_to_improve.drop(labels=["Mean", "Std", str(self.letter)])
             .to_numpy()
             .copy()
         )
@@ -1306,7 +1306,7 @@ class TOPSISAggregationFunction(ABC):
         max_possible_agg_value = self.TOPSIS_calculation(
             np.mean(self.wmsd_transformer.weights), w_means, w_stds
         ).item()
-        if max_possible_agg_value < alternative_to_overcome[str(self.agg_fn.letter)]:
+        if max_possible_agg_value < alternative_to_overcome[str(self.letter)]:
             # print(f"Not possible to achieve target {alternative_to_overcome['AggFn']} with specified features and boundary_values. Max possible agg value is {max_possible_agg_value}")
             return None
 
@@ -1314,7 +1314,7 @@ class TOPSISAggregationFunction(ABC):
             topsis_model=self.wmsd_transformer,
             modified_criteria_subset=modified_criteria_subset,
             current_performances=current_performances_US,
-            target_agg_value=alternative_to_overcome[str(self.agg_fn.letter)],
+            target_agg_value=alternative_to_overcome[str(self.letter)],
             upper_bounds=boundary_values,
             allow_deterioration=allow_deterioration,
         )
@@ -1526,7 +1526,7 @@ class ATOPSIS(TOPSISAggregationFunction):
         """
         """Exact algorithm dedicated to the aggregation `A` for achieving the target by modifying the performance on a single criterion."""
         performances_US = (
-            alternative_to_improve.drop(labels=["Mean", "Std", str(self.agg_fn.letter)])
+            alternative_to_improve.drop(labels=["Mean", "Std", str(self.letter)])
             .to_numpy()
             .copy()
         )
@@ -1536,11 +1536,11 @@ class ATOPSIS(TOPSISAggregationFunction):
         )
         weights = self.wmsd_transformer.weights
         target_agg_value = (
-            alternative_to_overcome[str(self.agg_fn.letter)] + epsilon / 2
+            alternative_to_overcome[str(self.letter)] + epsilon / 2
         ) * np.linalg.norm(weights)
 
         modified_criterion_idx = list(
-            alternative_to_improve.drop(labels=["Mean", "Std", str(self.agg_fn.letter)]).index
+            alternative_to_improve.drop(labels=["Mean", "Std", str(self.letter)]).index
         ).index(feature_to_change)
         criterion_range = self.wmsd_transformer._value_range[modified_criterion_idx]
         lower_bound = self.wmsd_transformer._lower_bounds[modified_criterion_idx]
@@ -1607,7 +1607,7 @@ class ATOPSIS(TOPSISAggregationFunction):
         -------
         TO DO
         """
-        if alternative_to_improve[str(self.agg_fn.letter)] >= alternative_to_overcome[str(self.agg_fn.letter)]:
+        if alternative_to_improve[str(self.letter)] >= alternative_to_overcome[str(self.letter)]:
             raise ValueError(
                 "Invalid value at 'alternatie_to_improve': must be worse than alternative_to_overcome'"
             )
@@ -1619,7 +1619,7 @@ class ATOPSIS(TOPSISAggregationFunction):
         )
         if (
             self.TOPSIS_calculation(w, alternative_to_improve["Mean"], sd_boundary)
-            < alternative_to_overcome[str(self.agg_fn.letter)]
+            < alternative_to_overcome[str(self.letter)]
         ):
             return None
         else:
@@ -1628,9 +1628,9 @@ class ATOPSIS(TOPSISAggregationFunction):
                 w, alternative_to_improve["Mean"], alternative_to_improve["Std"]
             )
             while True:
-                if actual_aggfn > alternative_to_overcome[str(self.agg_fn.letter)]:
+                if actual_aggfn > alternative_to_overcome[str(self.letter)]:
                     if (
-                        actual_aggfn - alternative_to_overcome[str(self.agg_fn.letter)]
+                        actual_aggfn - alternative_to_overcome[str(self.letter)]
                         > epsilon
                     ):
                         alternative_to_improve["Std"] -= change
@@ -1719,7 +1719,7 @@ class ITOPSIS(TOPSISAggregationFunction):
         """
         """Exact algorithm dedicated to the aggregation `I` for achieving the target by modifying the performance on a single criterion."""
         performances_US = (
-            alternative_to_improve.drop(labels=["Mean", "Std", str(self.agg_fn.letter)])
+            alternative_to_improve.drop(labels=["Mean", "Std", str(self.letter)])
             .to_numpy()
             .copy()
         )
@@ -1729,11 +1729,11 @@ class ITOPSIS(TOPSISAggregationFunction):
         )
         weights = self.wmsd_transformer.weights
         target_agg_value = (
-            1 - (alternative_to_overcome[str(self.agg_fn.letter)] + epsilon / 2)
+            1 - (alternative_to_overcome[str(self.letter)] + epsilon / 2)
         ) * np.linalg.norm(weights)
 
         modified_criterion_idx = list(
-            alternative_to_improve.drop(labels=["Mean", "Std", str(self.agg_fn.letter)]).index
+            alternative_to_improve.drop(labels=["Mean", "Std", str(self.letter)]).index
         ).index(feature_to_change)
         criterion_range = self.wmsd_transformer._value_range[modified_criterion_idx]
         lower_bound = self.wmsd_transformer._lower_bounds[modified_criterion_idx]
@@ -1800,7 +1800,7 @@ class ITOPSIS(TOPSISAggregationFunction):
         -------
         TO DO
         """
-        if alternative_to_improve[str(self.agg_fn.letter)] >= alternative_to_overcome[str(self.agg_fn.letter)]:
+        if alternative_to_improve[str(self.letter)] >= alternative_to_overcome[str(self.letter)]:
             raise ValueError(
                 "Invalid value at 'alternatie_to_improve': must be worse than alternative_to_overcome'"
             )
@@ -1812,7 +1812,7 @@ class ITOPSIS(TOPSISAggregationFunction):
         )
         if (
             self.TOPSIS_calculation(w, alternative_to_improve["Mean"], 0)
-            < alternative_to_overcome[str(self.agg_fn.letter)]
+            < alternative_to_overcome[str(self.letter)]
         ):
             return None
         else:
@@ -1821,9 +1821,9 @@ class ITOPSIS(TOPSISAggregationFunction):
                 w, alternative_to_improve["Mean"], alternative_to_improve["Std"]
             )
             while True:
-                if actual_aggfn > alternative_to_overcome[str(self.agg_fn.letter)]:
+                if actual_aggfn > alternative_to_overcome[str(self.letter)]:
                     if (
-                        actual_aggfn - alternative_to_overcome[str(self.agg_fn.letter)]
+                        actual_aggfn - alternative_to_overcome[str(self.letter)]
                         > epsilon
                     ):
                         alternative_to_improve["Std"] += change
@@ -1914,7 +1914,7 @@ class RTOPSIS(TOPSISAggregationFunction):
         """
         """Exact algorithm dedicated to the aggregation `R` for achieving the target by modifying the performance on a single criterion."""
         performances_US = (
-            alternative_to_improve.drop(labels=["Mean", "Std", str(self.agg_fn.letter)])
+            alternative_to_improve.drop(labels=["Mean", "Std", str(self.letter)])
             .to_numpy()
             .copy()
         )
@@ -1923,10 +1923,10 @@ class RTOPSIS(TOPSISAggregationFunction):
             + self.wmsd_transformer._lower_bounds
         )
         weights = self.wmsd_transformer.weights
-        target_agg_value = alternative_to_overcome[str(self.agg_fn.letter)] + epsilon / 2
+        target_agg_value = alternative_to_overcome[str(self.letter)] + epsilon / 2
 
         modified_criterion_idx = list(
-            alternative_to_improve.drop(labels=["Mean", "Std", str(self.agg_fn.letter)]).index
+            alternative_to_improve.drop(labels=["Mean", "Std", str(self.letter)]).index
         ).index(feature_to_change)
         criterion_range = self.wmsd_transformer._value_range[modified_criterion_idx]
         lower_bound = self.wmsd_transformer._lower_bounds[modified_criterion_idx]
@@ -2000,7 +2000,7 @@ class RTOPSIS(TOPSISAggregationFunction):
         -------
         TO DO
         """
-        if alternative_to_improve[str(self.agg_fn.letter)] >= alternative_to_overcome[str(self.agg_fn.letter)]:
+        if alternative_to_improve[str(self.letter)] >= alternative_to_overcome[str(self.letter)]:
             raise ValueError(
                 "Invalid value at 'alternatie_to_improve': must be worse than alternative_to_overcome'"
             )
@@ -2013,7 +2013,7 @@ class RTOPSIS(TOPSISAggregationFunction):
         if alternative_to_improve["Mean"] < w / 2:
             if (
                 self.TOPSIS_calculation(w, alternative_to_improve["Mean"], sd_boundary)
-                < alternative_to_overcome[str(self.agg_fn.letter)]
+                < alternative_to_overcome[str(self.letter)]
             ):
                 return None
             else:
@@ -2022,9 +2022,9 @@ class RTOPSIS(TOPSISAggregationFunction):
                     w, alternative_to_improve["Mean"], alternative_to_improve["Std"]
                 )
                 while True:
-                    if actual_aggfn > alternative_to_overcome[str(self.agg_fn.letter)]:
+                    if actual_aggfn > alternative_to_overcome[str(self.letter)]:
                         if (
-                            actual_aggfn - alternative_to_overcome[str(self.agg_fn.letter)]
+                            actual_aggfn - alternative_to_overcome[str(self.letter)]
                             > epsilon
                         ):
                             alternative_to_improve["Std"] -= change
@@ -2057,7 +2057,7 @@ class RTOPSIS(TOPSISAggregationFunction):
         else:
             if (
                 self.TOPSIS_calculation(w, alternative_to_improve["Mean"], 0)
-                < alternative_to_overcome[str(self.agg_fn.letter)]
+                < alternative_to_overcome[str(self.letter)]
             ):
                 return None
             else:
@@ -2066,9 +2066,9 @@ class RTOPSIS(TOPSISAggregationFunction):
                     w, alternative_to_improve["Mean"], alternative_to_improve["Std"]
                 )
                 while True:
-                    if actual_aggfn > alternative_to_overcome[str(self.agg_fn.letter)]:
+                    if actual_aggfn > alternative_to_overcome[str(self.letter)]:
                         if (
-                            actual_aggfn - alternative_to_overcome[str(self.agg_fn.letter)]
+                            actual_aggfn - alternative_to_overcome[str(self.letter)]
                             > epsilon
                         ):
                             alternative_to_improve["Std"] += change
