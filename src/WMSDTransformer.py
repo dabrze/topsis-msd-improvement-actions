@@ -983,7 +983,7 @@ class TOPSISAggregationFunction(ABC):
         alternative_to_overcome,
         epsilon,
         allow_std=False,
-        solutions_number = None,
+        solutions_number = 5,
         **kwargs,
     ):
         """TO DO
@@ -1114,6 +1114,7 @@ class TOPSISAggregationFunction(ABC):
                     alternative_to_improve["Mean"] += epsilon
                 else:
                     return None
+            result_means, result_stds = self.wmsd_transformer.transform_US_to_wmsd(np.array(result))
             objectives = self.wmsd_transformer.objectives
             value_range = self.wmsd_transformer._value_range
             result -= alternative_to_improve[:-3]
@@ -1129,6 +1130,8 @@ class TOPSISAggregationFunction(ABC):
                         result[j][i] = (
                             -value_range[j] * result[result.columns[j]][i]
                         )
+            result['Mean'] = result_means - m_start
+            result['Std'] = result_stds - std_start
             return result
 
     def __check_boundary_values(
@@ -1595,7 +1598,7 @@ class ATOPSIS(TOPSISAggregationFunction):
         alternative_to_improve,
         alternative_to_overcome,
         epsilon,
-        solutions_number = None,
+        solutions_number = 5,
         **kwargs,
     ):
         """TO DO
@@ -1614,6 +1617,7 @@ class ATOPSIS(TOPSISAggregationFunction):
 
         w = np.mean(self.wmsd_transformer.weights)
         std_start = alternative_to_improve["Std"]
+        m_start = alternative_to_improve["Mean"]
         sd_boundary = self.wmsd_transformer.max_std_calculator(
             alternative_to_improve["Mean"], self.wmsd_transformer.weights
         )
@@ -1656,6 +1660,7 @@ class ATOPSIS(TOPSISAggregationFunction):
                 inverse_solutions = self.wmsd_transformer.inverse_transform(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
                 reduced_solutions = self.reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
                 result = pd.DataFrame(reduced_solutions, columns=alternative_to_improve.index[:-3])
+            result_means, result_stds = self.wmsd_transformer.transform_US_to_wmsd(np.array(result))
             objectives = self.wmsd_transformer.objectives
             value_range = self.wmsd_transformer._value_range
             result -= alternative_to_improve[:-3]
@@ -1671,6 +1676,8 @@ class ATOPSIS(TOPSISAggregationFunction):
                         result[j][i] = (
                             -value_range[j] * result[result.columns[j]][i]
                         )
+            result['Mean'] = result_means - m_start
+            result['Std'] = result_stds - std_start
             return result
 
 
@@ -1788,7 +1795,7 @@ class ITOPSIS(TOPSISAggregationFunction):
         alternative_to_improve,
         alternative_to_overcome,
         epsilon,
-        solutions_number = None,
+        solutions_number = 5,
         **kwargs,
     ):
         """TO DO
@@ -1807,6 +1814,7 @@ class ITOPSIS(TOPSISAggregationFunction):
 
         w = np.mean(self.wmsd_transformer.weights)
         std_start = alternative_to_improve["Std"]
+        m_start = alternative_to_improve["Mean"]
         sd_boundary = self.wmsd_transformer.max_std_calculator(
             alternative_to_improve["Mean"], self.wmsd_transformer.weights
         )
@@ -1849,6 +1857,7 @@ class ITOPSIS(TOPSISAggregationFunction):
                 inverse_solutions = self.wmsd_transformer.inverse_transform(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
                 reduced_solutions = self.reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
                 result = pd.DataFrame(reduced_solutions, columns=alternative_to_improve.index[:-3])
+            result_means, result_stds = self.wmsd_transformer.transform_US_to_wmsd(np.array(result))
             objectives = self.wmsd_transformer.objectives
             value_range = self.wmsd_transformer._value_range
             result -= alternative_to_improve[:-3]
@@ -1864,6 +1873,8 @@ class ITOPSIS(TOPSISAggregationFunction):
                         result[j][i] = (
                             -value_range[j] * result[result.columns[j]][i]
                         )
+            result['Mean'] = result_means - m_start
+            result['Std'] = result_stds - std_start
             return result
 
 
@@ -1988,7 +1999,7 @@ class RTOPSIS(TOPSISAggregationFunction):
         alternative_to_improve,
         alternative_to_overcome,
         epsilon,
-        solutions_number = None,
+        solutions_number = 5,
         **kwargs,
     ):
         """TO DO
@@ -2007,6 +2018,7 @@ class RTOPSIS(TOPSISAggregationFunction):
 
         w = np.mean(self.wmsd_transformer.weights)
         std_start = alternative_to_improve["Std"]
+        m_start = alternative_to_improve["Mean"]
         sd_boundary = self.wmsd_transformer.max_std_calculator(
             alternative_to_improve["Mean"], self.wmsd_transformer.weights
         )
@@ -2096,6 +2108,7 @@ class RTOPSIS(TOPSISAggregationFunction):
                     inverse_solutions = self.wmsd_transformer.inverse_transform(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
                     reduced_solutions = self.reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
                     result = pd.DataFrame(reduced_solutions, columns=alternative_to_improve.index[:-3])
+            result_means, result_stds = self.wmsd_transformer.transform_US_to_wmsd(np.array(result))
             objectives = self.wmsd_transformer.objectives
             value_range = self.wmsd_transformer._value_range
             result -= alternative_to_improve[:-3]
@@ -2111,4 +2124,6 @@ class RTOPSIS(TOPSISAggregationFunction):
                         result[j][i] = (
                             -value_range[j] * result[result.columns[j]][i]
                         )
+            result['Mean'] = result_means - m_start
+            result['Std'] = result_stds - std_start
             return result
