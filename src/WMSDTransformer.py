@@ -660,14 +660,14 @@ class WMSDTransformer(TransformerMixin):
         """
         if type(alternative_to_improve) == int:
             alternative_to_improve = self.X_new.loc[
-                self._ranked_alternatives[alternative_to_improve]
+                self._ranked_alternatives[alternative_to_improve-1]
             ].copy()
         elif type(alternative_to_improve) == str:
             alternative_to_improve = self.X_new.loc[alternative_to_improve].copy()
 
         if type(alternative_to_overcome) == int:
             alternative_to_overcome = self.X_new.loc[
-                self._ranked_alternatives[alternative_to_overcome]
+                self._ranked_alternatives[alternative_to_overcome-1]
             ].copy()
         elif type(alternative_to_overcome) == str:
             alternative_to_overcome = self.X_new.loc[alternative_to_overcome].copy()
