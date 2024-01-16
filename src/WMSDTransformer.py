@@ -10,9 +10,8 @@ from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.operators.crossover.sbx import SBX
 from pymoo.operators.mutation.pm import PM
 from pymoo.optimize import minimize
-from sklearn.cluster import AgglomerativeClustering
 from joblib import Parallel, delayed
-
+from utils.single_criterion_exact_improvement import solve_quadratic_equation, choose_appropriate_solution
 
 class WMSDTransformer(TransformerMixin):
     """
@@ -1361,41 +1360,6 @@ class TOPSISAggregationFunction(ABC):
         else:
             return None
 
-    @staticmethod
-    def __solve_quadratic_equation(a, b, c):
-
-        discriminant = b**2 - 4 * a * c
-        if discriminant < 0:
-            return None
-        solution_1 = (-b + np.sqrt(discriminant)) / (2 * a)
-        solution_2 = (-b - np.sqrt(discriminant)) / (2 * a)
-        return solution_1, solution_2
-
-    @staticmethod
-    def __choose_appropriate_solution(
-        solution_1, solution_2, lower_bound, upper_bound, objective
-    ):
-        
-        solution_1_is_feasible = upper_bound > solution_1 > lower_bound
-        solution_2_is_feasible = upper_bound > solution_2 > lower_bound
-        if solution_1_is_feasible:
-            if solution_2_is_feasible:
-                # print("Both solutions feasible")
-                if objective == "max":
-                    return min(solution_1, solution_2)
-                else:
-                    return max(solution_1, solution_2)
-            else:
-                # print("Only solution_1 is feasible")
-                return solution_1
-        else:
-            if solution_2_is_feasible:
-                # print("Only solution_2 is feasible")
-                return solution_2
-            else:
-                # print("Neither solution is feasible")
-                return None
-
     @staticmethod  
     def reduce_population_agglomerative_clustering(data_to_cluster, num_clusters):
         labels = AgglomerativeClustering(n_clusters=num_clusters, linkage="average").fit(data_to_cluster).labels_
@@ -1569,9 +1533,7 @@ class ATOPSIS(TOPSISAggregationFunction):
             - target_agg_value**2
         )
 
-        solutions = TOPSISAggregationFunction.__solve_quadratic_equation(
-            a, b, c
-        )  # solutions are new performances in VS, not modifications
+        solutions = solve_quadratic_equation(a, b, c)  # solutions are new performances in VS, not modifications
         if solutions is None:
             # print("Not possible to achieve target")
             return None
@@ -1581,7 +1543,7 @@ class ATOPSIS(TOPSISAggregationFunction):
             solution_2 = ((solutions[1] / weights[j]) * criterion_range) + lower_bound
 
             # solution -- new performances in CS
-            solution = TOPSISAggregationFunction.__choose_appropriate_solution(
+            solution = choose_appropriate_solution(
                 solution_1, solution_2, lower_bound, upper_bound, objective
             )
             if solution is None:
@@ -1766,9 +1728,7 @@ class ITOPSIS(TOPSISAggregationFunction):
             - target_agg_value**2
         )
 
-        solutions = TOPSISAggregationFunction.__solve_quadratic_equation(
-            a, b, c
-        )  # solutions are new performances in VS, not modifications
+        solutions = solve_quadratic_equation(a, b, c)  # solutions are new performances in VS, not modifications
         if solutions is None:
             # print("Not possible to achieve target")
             return None
@@ -1778,7 +1738,7 @@ class ITOPSIS(TOPSISAggregationFunction):
             solution_2 = ((solutions[1] / weights[j]) * criterion_range) + lower_bound
 
             # solution -- new performances in CS
-            solution = TOPSISAggregationFunction.__choose_appropriate_solution(
+            solution = choose_appropriate_solution(
                 solution_1, solution_2, lower_bound, upper_bound, objective
             )
             if solution is None:
@@ -1970,9 +1930,7 @@ class RTOPSIS(TOPSISAggregationFunction):
         )
         c = (v_ij[j] - NIS[j]) ** 2 - k * (v_ij[j] - PIS[j]) ** 2 - p
 
-        solutions = TOPSISAggregationFunction.__solve_quadratic_equation(
-            a, b, c
-        )  # solutions are performance modifications in CS !!!
+        solutions = solve_quadratic_equation(a, b, c)  # solutions are performance modifications in CS !!!
         if solutions is None:
             # print("Not possible to achieve target")
             return None
@@ -1982,7 +1940,7 @@ class RTOPSIS(TOPSISAggregationFunction):
             solution_2 = solutions[1] + performances_CS[j]
 
         # solution -- new performances in CS
-        solution = TOPSISAggregationFunction.__choose_appropriate_solution(
+        solution = choose_appropriate_solution(
             solution_1, solution_2, lower_bound, upper_bound, objective
         )
         if solution is None:
