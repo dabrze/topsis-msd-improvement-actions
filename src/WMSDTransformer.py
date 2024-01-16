@@ -11,6 +11,7 @@ from pymoo.operators.crossover.sbx import SBX
 from pymoo.operators.mutation.pm import PM
 from pymoo.optimize import minimize
 from joblib import Parallel, delayed
+from utils.population_reduction import reduce_population_agglomerative_clustering
 from utils.single_criterion_exact_improvement import solve_quadratic_equation, choose_appropriate_solution
 
 class WMSDTransformer(TransformerMixin):
@@ -1046,8 +1047,8 @@ class TOPSISAggregationFunction(ABC):
                     )
                 else:
                     inverse_solutions = self.wmsd_transformer.inverse_transform(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
-                    reduced_solutions = self.reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
-                    result = pd.DataFrame(reduced_solutions, columns=alternative_to_improve.index[:-3])
+                    reduced_solutions = reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
+                    result = reduced_solutions
             elif allow_std:
                 alternative_to_improve["Std"] = self.wmsd_transformer.max_std_calculator(
                     alternative_to_improve["Mean"], self.wmsd_transformer.weights
@@ -1068,8 +1069,8 @@ class TOPSISAggregationFunction(ABC):
                         )
                     else:
                         inverse_solutions = self.wmsd_transformer.inverse_transform(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
-                        reduced_solutions = self.reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
-                        result = pd.DataFrame(reduced_solutions, columns=alternative_to_improve.index[:-3])
+                        reduced_solutions = reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
+                        result = reduced_solutions
                 else:
                     if solutions_number is None:
                         return pd.DataFrame(
@@ -1109,8 +1110,8 @@ class TOPSISAggregationFunction(ABC):
                             )
                         else:
                             inverse_solutions = self.wmsd_transformer.inverse_transform(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
-                            reduced_solutions = self.reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
-                            result =  pd.DataFrame(reduced_solutions, columns=alternative_to_improve.index[:-3])
+                            reduced_solutions = reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
+                            result = reduced_solutions
                             break
                     alternative_to_improve["Mean"] += epsilon
                 else:
@@ -1128,7 +1129,7 @@ class TOPSISAggregationFunction(ABC):
                             value_range[j] * result[result.columns[j]][i]
                         )
                     else:
-                        result[j][i] = (
+                        result[result.columns[j]][i] = (
                             -value_range[j] * result[result.columns[j]][i]
                         )
             result['Mean'] = result_means - m_start
@@ -1359,18 +1360,6 @@ class TOPSISAggregationFunction(ABC):
             )
         else:
             return None
-
-    @staticmethod  
-    def reduce_population_agglomerative_clustering(data_to_cluster, num_clusters):
-        labels = AgglomerativeClustering(n_clusters=num_clusters, linkage="average").fit(data_to_cluster).labels_
-        reduced_population = []
-        for i in range(max(labels)+1):
-            cluster = np.array(data_to_cluster)[labels == i]
-            centroid = np.mean(cluster, axis=0)
-            distances_from_centroid = np.linalg.norm(cluster-centroid, axis=1)
-            closest_point = cluster[distances_from_centroid.argmin()].tolist()
-            reduced_population.append(closest_point)
-        return reduced_population
 
 
 class PostFactumTopsisPymoo(Problem):
@@ -1622,8 +1611,8 @@ class ATOPSIS(TOPSISAggregationFunction):
                 )
             else:
                 inverse_solutions = self.wmsd_transformer.inverse_transform(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
-                reduced_solutions = self.reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
-                result = pd.DataFrame(reduced_solutions, columns=alternative_to_improve.index[:-3])
+                reduced_solutions = reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
+                result = reduced_solutions
             result_means, result_stds = self.wmsd_transformer.transform_US_to_wmsd(np.array(result))
             objectives = self.wmsd_transformer.objectives
             value_range = self.wmsd_transformer._value_range
@@ -1637,7 +1626,7 @@ class ATOPSIS(TOPSISAggregationFunction):
                             value_range[j] * result[result.columns[j]][i]
                         )
                     else:
-                        result[j][i] = (
+                        result[result.columns[j]][i] = (
                             -value_range[j] * result[result.columns[j]][i]
                         )
             result['Mean'] = result_means - m_start
@@ -1817,8 +1806,8 @@ class ITOPSIS(TOPSISAggregationFunction):
                 )
             else:
                 inverse_solutions = self.wmsd_transformer.inverse_transform(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
-                reduced_solutions = self.reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
-                result = pd.DataFrame(reduced_solutions, columns=alternative_to_improve.index[:-3])
+                reduced_solutions = reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
+                result = reduced_solutions
             result_means, result_stds = self.wmsd_transformer.transform_US_to_wmsd(np.array(result))
             objectives = self.wmsd_transformer.objectives
             value_range = self.wmsd_transformer._value_range
@@ -1832,7 +1821,7 @@ class ITOPSIS(TOPSISAggregationFunction):
                             value_range[j] * result[result.columns[j]][i]
                         )
                     else:
-                        result[j][i] = (
+                        result[result.columns[j]][i] = (
                             -value_range[j] * result[result.columns[j]][i]
                         )
             result['Mean'] = result_means - m_start
@@ -2024,8 +2013,8 @@ class RTOPSIS(TOPSISAggregationFunction):
                     )
                 else:
                     inverse_solutions = self.wmsd_transformer.inverse_transform(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
-                    reduced_solutions = self.reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
-                    result = pd.DataFrame(reduced_solutions, columns=alternative_to_improve.index[:-3])
+                    reduced_solutions = reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
+                    result = reduced_solutions
         else:
             if (
                 self.TOPSIS_calculation(w, alternative_to_improve["Mean"], 0)
@@ -2066,8 +2055,8 @@ class RTOPSIS(TOPSISAggregationFunction):
                     )
                 else:
                     inverse_solutions = self.wmsd_transformer.inverse_transform(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
-                    reduced_solutions = self.reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
-                    result = pd.DataFrame(reduced_solutions, columns=alternative_to_improve.index[:-3])
+                    reduced_solutions = reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
+                    result = reduced_solutions
             result_means, result_stds = self.wmsd_transformer.transform_US_to_wmsd(np.array(result))
             objectives = self.wmsd_transformer.objectives
             value_range = self.wmsd_transformer._value_range
@@ -2081,7 +2070,7 @@ class RTOPSIS(TOPSISAggregationFunction):
                             value_range[j] * result[result.columns[j]][i]
                         )
                     else:
-                        result[j][i] = (
+                        result[result.columns[j]][i] = (
                             -value_range[j] * result[result.columns[j]][i]
                         )
             result['Mean'] = result_means - m_start
