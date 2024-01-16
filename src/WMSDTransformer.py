@@ -182,7 +182,7 @@ class WMSDTransformer(TransformerMixin):
         return w_means, w_stds
 
     def inverse_transform(
-        self, target_mean, target_std, std_type, sampling_density=None, epsilon=0.01
+        self, target_mean, target_std, std_type, sampling_density=None, epsilon=0.01, verbose=True
     ):
         """TO DO
         Parameters
@@ -193,15 +193,25 @@ class WMSDTransformer(TransformerMixin):
         -------
         TO DO
         """
+
+        if std_type not in ['==', '<=', '>=']:
+            raise ValueError("Invalid value at `std_type`, should be one of the following strings '==', '<=', '>='")
+
         if sampling_density is None:
             sampling_density = math.ceil(5000000 ** (1 / self.m))
             # print("sampling_density", sampling_density)
 
-        dims = [np.linspace(0, 1, sampling_density) for i in range(self.m)]
+        dims = [np.linspace(0, 1, sampling_density, dtype=np.float32) for i in range(self.m)]
         grid = np.meshgrid(*dims)
         points = np.column_stack([xx.ravel() for xx in grid])
-        # print(f"{len(points)} samples generated in total")
+        if verbose:
+            print(f"inverse_transform sampling_density: {sampling_density}")
+            print(f"inverse_transform {len(points)} samples generated in total")
+            print(f"inverse_transform RAM usage for points: {points.nbytes / 1024 / 1024} MiB")
         w_means, w_stds = self.transform_US_to_wmsd(points)
+        
+        # TODO automatyczny dobór epsilona w inverse_transform, jeśli bardzo wiele punktów pasuje,
+        # to należy ustawić mniejsza tolerancję, jeśli żaden to większą tolerancję
 
         if std_type == "==":
             filtered_points = points[
@@ -216,19 +226,15 @@ class WMSDTransformer(TransformerMixin):
                     abs(w_means - target_mean) < epsilon, w_stds <= target_std
                 )
             ]
-        elif std_type == ">=":
+        else: # std_type == ">="
             filtered_points = points[
                 np.bitwise_and(
                     abs(w_means - target_mean) < epsilon, w_stds >= target_std
                 )
             ]
-        else:
-            raise ValueError(
-                "Invalid value at `std_type`, should be one of the following strings '==', '<=', '>='"
-            )
-        # TODO move validation of std_type before computationally expensive sampling and transformation
-
-        # print(f"Result shape {filtered_points.shape}")
+        if verbose:
+            print(f"inverse_transform Returning {filtered_points.shape[0]} solutions")
+        
         return pd.DataFrame(filtered_points, columns=self.X.columns)
 
     def plot(self, heatmap_quality=500, show_names=False, plot_name=None, color='jet'):
