@@ -19,7 +19,7 @@ def test_checkImprovedSign(df):
     changes = buses.improvement(
         'improvement_features', 
         alternative_to_improve= 7,
-        alternative_to_overcome= 3,
+        alternative_to_overcome= 5,
         features_to_change= ['MaxSpeed', 'Blacking', 'SummerCons'])
     for col_name in changes.columns:
         if objectives[col_name] == 'max':
@@ -43,12 +43,12 @@ def test_checkImprovedValue(df):
     changes = buses.improvement(
         'improvement_features', 
         alternative_to_improve= 7,
-        alternative_to_overcome= 3,
+        alternative_to_overcome= 5,
         features_to_change= ['MaxSpeed', 'Blacking', 'SummerCons'])
     result = {
-        'MaxSpeed': [0.0],
+        'MaxSpeed': [2.0],
         'ComprPressure': [0.0],
-        'Blacking': [-16.946075],
+        'Blacking': [-4.955669],
         'Torque': [0.0],
         'SummerCons': [0.0],
         'WinterCons': [0.0],
