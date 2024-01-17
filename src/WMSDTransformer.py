@@ -39,11 +39,11 @@ class WMSDTransformer(TransformerMixin):
         2D list containing normalized expert range.
     """
 
-    def __init__(self, agg_fn, max_std_calculator="scip", n_job=None):
+    def __init__(self, agg_fn, max_std_calculator="scip", n_jobs=None):
         self.agg_fn = self.__check_agg_fn(agg_fn)
         self.max_std_calculator = self.__check_max_std_calculator(max_std_calculator)
         self._isFitted = False
-        self.n_job = n_job
+        self.n_jobs = n_jobs
 
     def fit(self, X, weights=None, objectives=None, expert_range=None):
 
@@ -337,7 +337,7 @@ class WMSDTransformer(TransformerMixin):
                 4: 75,
             }
             means = np.linspace(0, np.mean(self.weights), quality_exact.get(self.m, 50))
-            half_perimeter = Parallel(n_jobs=self.n_job)(delayed(self.max_std_calculator)(mean, self.weights) for mean in means[:len(means)//2])
+            half_perimeter = Parallel(n_jobs=self.n_jobs)(delayed(self.max_std_calculator)(mean, self.weights) for mean in means[:len(means)//2])
             perimeter = np.concatenate((half_perimeter, np.flip(half_perimeter)))
             
         # draw upper perimeter
