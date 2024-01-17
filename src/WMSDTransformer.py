@@ -1545,6 +1545,8 @@ class ATOPSIS(TOPSISAggregationFunction):
                 return None
             else:
                 feature_modification = solution - performances_CS[j]
+                if self.wmsd_transformer.objectives[modified_criterion_idx] == 'min':
+                    feature_modification *= -1
                 modification_vector = np.zeros_like(performances_US)
                 modification_vector[modified_criterion_idx] = feature_modification
                 result_df = pd.DataFrame(
@@ -1740,6 +1742,8 @@ class ITOPSIS(TOPSISAggregationFunction):
                 return None
             else:
                 feature_modification = solution - performances_CS[j]
+                if self.wmsd_transformer.objectives[modified_criterion_idx] == 'min':
+                    feature_modification *= -1
                 modification_vector = np.zeros_like(performances_US)
                 modification_vector[modified_criterion_idx] = feature_modification
                 result_df = pd.DataFrame(
@@ -1942,6 +1946,8 @@ class RTOPSIS(TOPSISAggregationFunction):
             return None
         else:
             feature_modification = solution - performances_CS[j]
+            if self.wmsd_transformer.objectives[modified_criterion_idx] == 'min':
+                    feature_modification *= -1
             modification_vector = np.zeros_like(performances_US)
             modification_vector[modified_criterion_idx] = feature_modification
             result_df = pd.DataFrame(
