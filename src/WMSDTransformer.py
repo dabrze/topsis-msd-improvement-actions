@@ -527,22 +527,20 @@ class WMSDTransformer(TransformerMixin):
         custom1 = numbers.copy()
         custom1.remove(new_rank)
 
-        ### add new point
-        fig.add_trace(
-            go.Scatter(
-                x=[self.X_newPoint.loc["NEW " + id, "Mean"]],
-                y=[self.X_newPoint.loc["NEW " + id, "Std"]],
-                showlegend=False,
-                mode="markers",
-                marker=dict(color="white", size=10, line=dict(color='black', width=2)),
-                customdata=np.stack(([new_rank], [new_value]), axis=1),
-                text=["NEW " + id],
-                hovertemplate="<b>ID</b>: %{text}<br>"
-                + "<b>Old Rank</b>: -<br>"
-                + "<b>New Rank</b>: %{customdata[0]:f}<br>"
-                + f"<b>{str(self.agg_fn)[16]}</b>: " "%{customdata[1]:f}<br>"
-                + "<extra></extra>",
-            )
+        ### define new point
+        new_point = go.Scatter(
+            x=[self.X_newPoint.loc["NEW " + id, "Mean"]],
+            y=[self.X_newPoint.loc["NEW " + id, "Std"]],
+            showlegend=False,
+            mode="markers",
+            marker=dict(color="white", size=10, line=dict(color='black', width=2)),
+            customdata=np.stack(([new_rank], [new_value]), axis=1),
+            text=["NEW " + id],
+            hovertemplate="<b>ID</b>: %{text}<br>"
+            + "<b>Old Rank</b>: -<br>"
+            + "<b>New Rank</b>: %{customdata[0]:f}<br>"
+            + f"<b>{str(self.agg_fn)[16]}</b>: " "%{customdata[1]:f}<br>"
+            + "<extra></extra>",
         )
         ### add names for new point and other points
         if show_names == True:
@@ -592,6 +590,8 @@ class WMSDTransformer(TransformerMixin):
                 + "<extra></extra>",
             )
         )
+        ### add new point
+        fig.add_trace(new_point)
         return fig
 
     def show_ranking(self, mode="standard", first=1, last=None):
