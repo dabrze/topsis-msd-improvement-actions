@@ -2069,22 +2069,22 @@ class RTOPSIS(TOPSISAggregationFunction):
                     inverse_solutions = self.wmsd_transformer.inverse_transform(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
                     reduced_solutions = reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
                     result = reduced_solutions
-            result_means, result_stds = self.wmsd_transformer.transform_US_to_wmsd(np.array(result))
-            objectives = self.wmsd_transformer.objectives
-            value_range = self.wmsd_transformer._value_range
-            result -= alternative_to_improve[:-3]
-            for i in result.index:
-                for j in range(len(result.columns)):
-                    if result[result.columns[j]][i] == 0:
-                        continue
-                    elif objectives[j] == "max":
-                        result[result.columns[j]][i] = (
-                            value_range[j] * result[result.columns[j]][i]
-                        )
-                    else:
-                        result[result.columns[j]][i] = (
-                            -value_range[j] * result[result.columns[j]][i]
-                        )
-            result['Mean'] = result_means - m_start
-            result['Std'] = result_stds - std_start
-            return result
+        result_means, result_stds = self.wmsd_transformer.transform_US_to_wmsd(np.array(result))
+        objectives = self.wmsd_transformer.objectives
+        value_range = self.wmsd_transformer._value_range
+        result -= alternative_to_improve[:-3]
+        for i in result.index:
+            for j in range(len(result.columns)):
+                if result[result.columns[j]][i] == 0:
+                    continue
+                elif objectives[j] == "max":
+                    result[result.columns[j]][i] = (
+                        value_range[j] * result[result.columns[j]][i]
+                    )
+                else:
+                    result[result.columns[j]][i] = (
+                        -value_range[j] * result[result.columns[j]][i]
+                    )
+        result['Mean'] = result_means - m_start
+        result['Std'] = result_stds - std_start
+        return result
