@@ -1186,6 +1186,20 @@ class TOPSISAggregationFunction(ABC):
                 
         return np.array(boundary_values)
 
+    def __check_epsilon(self, epsilon, w):
+
+        avg_w = sum(w)/len(w)
+
+        if not (isinstance(epsilon, float) or isinstance(epsilon, int)):
+            raise ValueError(
+                "Invalid value at 'epsilon': must be a float"
+            )
+        
+        if (epsilon < 0.0) or (epsilon > avg_w/2):
+            raise ValueError(
+                f"Invalid value at 'epsilon': must be in range [0, {avg_w/2}]"
+            )
+
     def improvement_features(
         self,
         alternative_to_improve,
@@ -1208,6 +1222,9 @@ class TOPSISAggregationFunction(ABC):
             raise ValueError(
                 "Invalid value at 'alternatie_to_improve': must be worse than alternative_to_overcome'"
             )
+        
+
+        
         boundary_values = self.__check_boundary_values(
             alternative_to_improve, features_to_change, boundary_values
         )
@@ -1219,6 +1236,8 @@ class TOPSISAggregationFunction(ABC):
         improvement_start = alternative_to_improve.copy()
         feature_pointer = 0
         w = self.wmsd_transformer.weights
+        self.__check_epsilon(epsilon, w)
+
         value_range = self.wmsd_transformer._value_range
         objectives = self.wmsd_transformer.objectives
 
