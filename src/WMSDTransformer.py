@@ -282,7 +282,7 @@ class WMSDTransformer(TransformerMixin):
                 contours_coloring="heatmap",
                 line_width=0,
                 colorbar=dict(
-                    title=str(self.agg_fn.letter),
+                    title=str(self.agg_fn.letter + '(v)'),
                     titleside="right",
                     outlinewidth=1,
                     title_font_size=22,
@@ -399,7 +399,7 @@ class WMSDTransformer(TransformerMixin):
                 text=self.X_new.index.values,
                 hovertemplate="<b>ID</b>: %{text}<br>"
                 + "<b>Rank</b>: %{customdata[0]:f}<br>"
-                + f"<b>{str(self.agg_fn.letter)}</b>: " "%{customdata[1]:f}<br>"
+                + f"<b>{str(self.agg_fn.letter + '(v)')}</b>: " "%{customdata[1]:f}<br>"
                 + "<extra></extra>",
             )
         )
@@ -502,7 +502,7 @@ class WMSDTransformer(TransformerMixin):
                 hovertemplate="<b>ID</b>: %{text}<br>"
                 + "<b>Old Rank</b>: %{customdata[0]:f}<br>"
                 + "<b>New Rank</b>: -<br>"
-                + f"<b>{str(self.agg_fn)[16]}</b>: " "%{customdata[1]:f}<br>"
+                + f"<b>{str(self.agg_fn.letter + '(v)')}</b>: " "%{customdata[1]:f}<br>"
                 + "<extra></extra>",
             )
         )
@@ -539,7 +539,7 @@ class WMSDTransformer(TransformerMixin):
             hovertemplate="<b>ID</b>: %{text}<br>"
             + "<b>Old Rank</b>: -<br>"
             + "<b>New Rank</b>: %{customdata[0]:f}<br>"
-            + f"<b>{str(self.agg_fn)[16]}</b>: " "%{customdata[1]:f}<br>"
+            + f"<b>{str(self.agg_fn.letter + '(v)')}</b>: " "%{customdata[1]:f}<br>"
             + "<extra></extra>",
         )
         ### add names for new point and other points
@@ -586,7 +586,7 @@ class WMSDTransformer(TransformerMixin):
                 hovertemplate="<b>ID</b>: %{text}<br>"
                 + "<b>Old Rank</b>: %{customdata[0]:f}<br>"
                 + "<b>New Rank</b>: %{customdata[1]:f}<br>"
-                + f"<b>{str(self.agg_fn)[16]}</b>: " "%{customdata[2]:f}<br>"
+                + f"<b>{str(self.agg_fn.letter + '(v)')}</b>: " "%{customdata[2]:f}<br>"
                 + "<extra></extra>",
             )
         )
@@ -2069,22 +2069,22 @@ class RTOPSIS(TOPSISAggregationFunction):
                     inverse_solutions = self.wmsd_transformer.inverse_transform(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
                     reduced_solutions = reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
                     result = reduced_solutions
-            result_means, result_stds = self.wmsd_transformer.transform_US_to_wmsd(np.array(result))
-            objectives = self.wmsd_transformer.objectives
-            value_range = self.wmsd_transformer._value_range
-            result -= alternative_to_improve[:-3]
-            for i in result.index:
-                for j in range(len(result.columns)):
-                    if result[result.columns[j]][i] == 0:
-                        continue
-                    elif objectives[j] == "max":
-                        result[result.columns[j]][i] = (
-                            value_range[j] * result[result.columns[j]][i]
-                        )
-                    else:
-                        result[result.columns[j]][i] = (
-                            -value_range[j] * result[result.columns[j]][i]
-                        )
-            result['Mean'] = result_means - m_start
-            result['Std'] = result_stds - std_start
-            return result
+        result_means, result_stds = self.wmsd_transformer.transform_US_to_wmsd(np.array(result))
+        objectives = self.wmsd_transformer.objectives
+        value_range = self.wmsd_transformer._value_range
+        result -= alternative_to_improve[:-3]
+        for i in result.index:
+            for j in range(len(result.columns)):
+                if result[result.columns[j]][i] == 0:
+                    continue
+                elif objectives[j] == "max":
+                    result[result.columns[j]][i] = (
+                        value_range[j] * result[result.columns[j]][i]
+                    )
+                else:
+                    result[result.columns[j]][i] = (
+                        -value_range[j] * result[result.columns[j]][i]
+                    )
+        result['Mean'] = result_means - m_start
+        result['Std'] = result_stds - std_start
+        return result
