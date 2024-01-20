@@ -1145,47 +1145,45 @@ class TOPSISAggregationFunction(ABC):
     def __check_boundary_values(
         self, alternative_to_improve, features_to_change, boundary_values
     ):
-        """TO DO
-        Parameters
-        ----------
-        parameter : type
-            description
-        Returns
-        -------
-        TO DO
-        """
+        
         if boundary_values is None:
             boundary_values = np.ones(len(features_to_change))
-        else:
-            if len(features_to_change) != len(boundary_values):
+            
+        elif not isinstance(boundary_values, list):
+            raise ValueError(
+                "Invalid value at 'boundary_values': must be a list"
+            )
+
+        if len(features_to_change) != len(boundary_values):
+            raise ValueError(
+                "Invalid value at 'boundary_values': must be same length as 'features_to_change'"
+            )
+        for i in range(len(features_to_change)):
+            col = self.wmsd_transformer.X_new.columns.get_loc(features_to_change[i])
+            if (
+                boundary_values[i] < self.wmsd_transformer.expert_range[col][0]
+                or boundary_values[i] > self.wmsd_transformer.expert_range[col][1]
+            ):
                 raise ValueError(
-                    "Invalid value at 'boundary_values': must be same length as 'features_to_change'"
+                    "Invalid value at 'boundary_values': must be between defined 'expert_range'"
                 )
-            for i in range(len(features_to_change)):
-                col = self.wmsd_transformer.X_new.columns.get_loc(features_to_change[i])
+            else:
+                boundary_values[i] = (
+                    boundary_values[i] - self.wmsd_transformer.expert_range[col][0]
+                ) / (
+                    self.wmsd_transformer.expert_range[col][1]
+                    - self.wmsd_transformer.expert_range[col][0]
+                )
+                if self.wmsd_transformer.objectives[col] == "min":
+                    boundary_values[i] = 1 - boundary_values[i]
                 if (
-                    boundary_values[i] < self.wmsd_transformer.expert_range[col][0]
-                    or boundary_values[i] > self.wmsd_transformer.expert_range[col][1]
+                    alternative_to_improve[features_to_change[i]]
+                    > boundary_values[i]
                 ):
                     raise ValueError(
-                        "Invalid value at 'boundary_values': must be between defined 'expert_range'"
+                        "Invalid value at 'boundary_values': must be better or equal to improving alternative values"
                     )
-                else:
-                    boundary_values[i] = (
-                        boundary_values[i] - self.wmsd_transformer.expert_range[col][0]
-                    ) / (
-                        self.wmsd_transformer.expert_range[col][1]
-                        - self.wmsd_transformer.expert_range[col][0]
-                    )
-                    if self.wmsd_transformer.objectives[col] == "min":
-                        boundary_values[i] = 1 - boundary_values[i]
-                    if (
-                        alternative_to_improve[features_to_change[i]]
-                        > boundary_values[i]
-                    ):
-                        raise ValueError(
-                            "Invalid value at 'boundary_values': must be better or equal to improving alternative values"
-                        )
+                
         return np.array(boundary_values)
 
     def improvement_features(
