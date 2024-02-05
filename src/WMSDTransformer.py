@@ -1148,6 +1148,9 @@ class TOPSISAggregationFunction(ABC):
         
         if boundary_values is None:
             boundary_values = np.ones(len(features_to_change))
+            for i in range(len(features_to_change)):
+                col = self.wmsd_transformer.X_new.columns.get_loc(features_to_change[i])
+                boundary_values[i] = self.wmsd_transformer.expert_range[col][1]
             
         elif not isinstance(boundary_values, list):
             raise ValueError(
