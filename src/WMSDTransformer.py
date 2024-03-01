@@ -170,7 +170,18 @@ class WMSDTransformer(TransformerMixin):
         return self.X_new
 
     def transform_US_to_wmsd(self, X_US):
+        """Transforms data from Utility Space to weighted MSD Space.
+        Parameters
+        ----------
+        
+        X_US : data-frame
+            Pandas data-frame where data are presented in Utility Space.
 
+        Returns
+        -------
+        Norms w_means and w_stds.
+        
+        """
         # transform data from Utility Space to WMSD Space
         w = self.weights
         s = np.linalg.norm(w) / np.mean(w)
@@ -184,14 +195,29 @@ class WMSDTransformer(TransformerMixin):
     def inverse_transform(
         self, target_mean, target_std, std_type, sampling_density=None, epsilon=0.01, verbose=True
     ):
-        """TO DO
+        """Calculates possible changes to obtain target mean and standard deviation values for given alternative.
         Parameters
         ----------
-        parameter : type
-            description
+        target_mean : float 
+            Mean of values to obtain for a given alternative.
+        target_std : float 
+            Standard deviation of values to obtain for a given alternative.
+        std_type : str 
+            TODO description (probably someting depending on chosen agg_fn)
+            Must be one of following strings '==', '<=', '>='.
+        sampling_density : int
+            TODO description
+            If None, then its value is set automatically and equals TODO.
+            (default: None)
+        epsilon : float
+            Precision of calculations. Must be in range (0.0, 1.0>.
+            (default : 0.01)
+        verbose : bool
+            If True, prints info about number of returned solutions.
+            (default : True)
         Returns
         -------
-        TO DO
+        Pandas dataframe containing found solutions.
         """
 
         if std_type not in ['==', '<=', '>=']:
@@ -608,7 +634,7 @@ class WMSDTransformer(TransformerMixin):
         first : int, optional
             Rank from which the ranking should be displayed.
             (default 1)
-        first : int, optional
+        last : int, optional
             Rank to which the ranking should be displayed.
             (default None)
         """
@@ -657,14 +683,28 @@ class WMSDTransformer(TransformerMixin):
         epsilon=0.000001,
         **kwargs,
     ):
-        """TO DO
+        """ Runs chosen by the user improvement function.
         Parameters
         ----------
-        parameter : type
-            description
+        function_name : str 
+            Name of the function (improvement action) to perform on given alternative.
+            It must be one of the following strings: 
+            'improvement_single_feature',
+            'improvement_mean',
+            'improvement_features',
+            'improvement_genetic',
+            'improvement_std'
+
+        alternative_to_improve : int or str 
+            Name or position of the alternative which user wants to improve.
+        alternative_to_overcome : int or str 
+            Name or position of the alternative which should be overcome by chosen alternative.
+        epsilon : float
+            Precision of calculations. Must be in range (0.0, 1.0>.
+            (default : 0.000001)
         Returns
         -------
-        TO DO
+        Output returned by the [function_name] function.
         """
         if type(alternative_to_improve) == int:
             alternative_to_improve = self.X_new.loc[
@@ -941,12 +981,11 @@ class WMSDTransformer(TransformerMixin):
 
 class TOPSISAggregationFunction(ABC):
     """
-    Class description
+    A class used to calculate TOPSIS ranking and perform improvement actions.
     ...
     Attributes
     ----------
-    attribute : type
-        description
+    wmsd_transformer : WMSDTransformer object
     """
 
     def __init__(self, wmsd_transformer):
@@ -954,14 +993,8 @@ class TOPSISAggregationFunction(ABC):
 
     @abstractmethod
     def TOPSIS_calculation(self, w, wm, wsd):
-        """TO DO
-        Parameters
-        ----------
-        parameter : type
-            description
-        Returns
-        -------
-        TO DO
+        """
+        abstract method
         """
         pass
 
@@ -974,14 +1007,8 @@ class TOPSISAggregationFunction(ABC):
         feature_to_change,
         **kwargs,
     ):
-        """TO DO
-        Parameters
-        ----------
-        parameter : type
-            description
-        Returns
-        -------
-        TO DO
+        """
+        abstract method
         """
         pass
 
@@ -994,14 +1021,26 @@ class TOPSISAggregationFunction(ABC):
         solutions_number = 5,
         **kwargs,
     ):
-        """TO DO
+        """ Calculates minimal change in mean value of alternative's criteria in order to 
+        let the alternative achieve the target position.
         Parameters
         ----------
-        parameter : type
-            description
+        alternative_to_improve : int or str 
+            Name or position of the alternative which user wants to improve.
+        alternative_to_overcome : int or str 
+            Name or position of the alternative which should be overcome by chosen alternative.
+        epsilon : float
+            Precision of calculations. Must be in range (0.0, 1.0>.
+            (default : 0.000001)
+        allow_std : bool
+            If True then also possible proposition of changes in standard deviation.
+            (default : False)
+        solutions_number : int
+            Maximal number of proposed solutions.
+            (default : 5)
         Returns
         -------
-        TO DO
+        At most [solution_number] proposed solutions.
         """
         if alternative_to_improve[str(self.letter)] >= alternative_to_overcome[str(self.letter)]:
             raise ValueError(
@@ -1211,14 +1250,26 @@ class TOPSISAggregationFunction(ABC):
         boundary_values=None,
         **kwargs,
     ):
-        """TO DO
+        """ Calculates minimal change in given criteria values in order to 
+        let the alternative achieve the target position.
         Parameters
         ----------
-        parameter : type
-            description
+        alternative_to_improve : int or str 
+            Name or position of the alternative which user wants to improve.
+        alternative_to_overcome : int or str 
+            Name or position of the alternative which should be overcome by chosen alternative.
+        epsilon : float
+            Precision of calculations. Must be in range (0.0, 1.0>.
+            (default : 0.000001)
+        features_to_change : array of str
+            Array containing names of criteria on which change should be caluculated.
+        boundary_values : 2D array of floats
+            Array with dimensions number_of_features_to_change x 2. For each feature to change it should
+            have provoided 2 numbers: lower and upper boundaries of proposed values.
+            (default : None)
         Returns
         -------
-        TO DO
+        Proposed solutions.
         """
         if alternative_to_improve[str(self.letter)] >= alternative_to_overcome[str(self.letter)]:
             raise ValueError(
@@ -1306,14 +1357,35 @@ class TOPSISAggregationFunction(ABC):
         popsize=None,
         n_generations=200,
     ):
-        """TO DO
+        """ Use genetic algorithm to create propositions of changes to 
+        let the chosen alternative achieve the target position.
         Parameters
         ----------
-        parameter : type
-            description
+        alternative_to_improve : int or str 
+            Name or position of the alternative which user wants to improve.
+        alternative_to_overcome : int or str 
+            Name or position of the alternative which should be overcome by chosen alternative.
+        epsilon : float
+            Precision of calculations. Must be in range (0.0, 1.0>.
+            (default : 0.000001)
+        features_to_change : array of str
+            Array containing names of criteria on which change should be caluculated.
+        boundary_values : 2D array of floats
+            Array with dimensions number_of_features_to_change x 2. For each feature to change it should
+            have provoided 2 numbers: lower and upper boundaries of proposed values.
+            (default : None)
+        allow_deterioration : bool
+            TODO description
+            (default : False)
+        popsize : int
+            Size of the population.
+            (default : None)
+        n_generations : int
+            Number of generations (iterations).
+            (default : 200)
         Returns
         -------
-        TO DO
+        Proposed solutions.
         """
         boundary_values = self.__check_boundary_values(
             alternative_to_improve, features_to_change, boundary_values
@@ -1397,24 +1469,17 @@ class PostFactumTopsisPymoo(Problem):
     topsis_model : object
         Object with methods to calculate weighted means, weighted standard deviations and aggregation values (e.g. WMSDTransformer object).
     modified_criteria_subset : numpy array of bools
-        description
+        Used to slice numpy arrays.
     current_performances : object
         description
     target_agg_value : object
         description
-    upper_bounds : object
-        description
-    allow_deterioration : object
-        description
+    upper_bounds : 2D array of floats
+        Array with dimensions number_of_features_to_change x 2. For each feature to change it should
+        have provoided 2 numbers: lower and upper boundaries of proposed values.
+        (default : None)
     """
 
-    """
-    topsis_model -- to jest tak naprawdę obiekt WMSDTransformer, ale to może być cokolwiek innego, byleby umiało policzyć w_means w_stds oraz agg_values (w sumie wystarczyłoby to ostatnie), ta klasa działała wcześniej bez tego całego WMSD w przestrzeni ocen, potem ją dostosowałem, bo jak implementowałem takie rzeczy do swoich badań
-    modified_criteria_subset -- to jest odpowiednik z heurystyki Adama, tylko że zamiast listy stringów to jest bool-owski np.array o długości n_criteria, używam tego do szybkiego slice-owania tablic np.array
-    current_performances oraz target_agg_value -- te chyba nie wymagają wyjaśnienia, zobaczcie tylko jakiego typu obiekty to są, jeśli potrzeba to wam wyjaśnię kiedyś na głosowym
-    upper_bounds -- to jest odpowiednik boundary_values z heurystyki Adama, uwaga na postać i długość tej tablicy
-    allow_deterioration -- to chyba można wywalić, bo tej funkcjonalności w bibliotece ostatecznie nie będzie
-    """
     def __init__(
         self,
         topsis_model,
@@ -1466,12 +1531,11 @@ class PostFactumTopsisPymoo(Problem):
 
 class ATOPSIS(TOPSISAggregationFunction):
     """
-    Class description
+    A class used to calculate TOPSIS ranking and perform improvement actions for A() aggregation function.
     ...
     Attributes
     ----------
-    attribute : type
-        description
+    wmsd_transformer : WMSDTransformer object
     """
 
     def __init__(self, wmsd_transformer):
