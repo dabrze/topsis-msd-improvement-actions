@@ -993,8 +993,18 @@ class TOPSISAggregationFunction(ABC):
 
     @abstractmethod
     def TOPSIS_calculation(self, w, wm, wsd):
-        """
-        abstract method
+        """Calculates TOPSIS values according to chosen aggreagtion function.
+        Parameters
+        ----------
+        w : TODO
+            Weights.
+        wm : TODO
+            Weighted mean.
+        wsd : TODO
+            Weighted standard deviation.
+        Returns
+        -------
+        Calculated aggregation function value.
         """
         pass
 
@@ -1007,8 +1017,22 @@ class TOPSISAggregationFunction(ABC):
         feature_to_change,
         **kwargs,
     ):
-        """
-        abstract method
+        """ Calculates minimal change in given criterion value in order to 
+        let the alternative achieve the target position.
+        Parameters
+        ----------
+        alternative_to_improve : int or str 
+            Name or position of the alternative which user wants to improve.
+        alternative_to_overcome : int or str 
+            Name or position of the alternative which should be overcome by chosen alternative.
+        epsilon : float
+            Precision of calculations. Must be in range (0.0, 1.0>.
+            (default : 0.000001)
+        feature_to_change : str
+            Name of criterion on which change should be caluculated.
+        Returns
+        -------
+        Calculated minimal change in given criterion.
         """
         pass
 
@@ -1543,14 +1567,18 @@ class ATOPSIS(TOPSISAggregationFunction):
         self.letter = 'A'
 
     def TOPSIS_calculation(self, w, wm, wsd):
-        """TO DO
+        """Calculates TOPSIS values according to A() aggreagtion function.
         Parameters
         ----------
-        parameter : type
-            description
+        w : TODO
+            Weights.
+        wm : TODO
+            Weighted mean.
+        wsd : TODO
+            Weighted standard deviation.
         Returns
         -------
-        TO DO
+        Calculated aggregation function value.
         """
         return np.sqrt(wm * wm + wsd * wsd) / w
 
@@ -1562,16 +1590,24 @@ class ATOPSIS(TOPSISAggregationFunction):
         feature_to_change,
         **kwargs,
     ):
-        """TO DO
+        """ Exact algorithm dedicated to the aggregation `A` for achieving the target by modifying the performance on a single criterion.
+        Calculates minimal change in given criterion value in order to let the alternative achieve the target position.
         Parameters
         ----------
-        parameter : type
-            description
+        alternative_to_improve : int or str 
+            Name or position of the alternative which user wants to improve.
+        alternative_to_overcome : int or str 
+            Name or position of the alternative which should be overcome by chosen alternative.
+        epsilon : float
+            Precision of calculations. Must be in range (0.0, 1.0>.
+            (default : 0.000001)
+        feature_to_change : str
+            Name of criterion on which change should be caluculated.
         Returns
         -------
-        TO DO
+        Calculated minimal change in given criterion.
         """
-        """Exact algorithm dedicated to the aggregation `A` for achieving the target by modifying the performance on a single criterion."""
+
         performances_US = (
             alternative_to_improve.drop(labels=["Mean", "Std", str(self.letter)])
             .to_numpy()
@@ -1645,14 +1681,23 @@ class ATOPSIS(TOPSISAggregationFunction):
         solutions_number = 5,
         **kwargs,
     ):
-        """TO DO
+        """ Calculates minimal change in standard deviation value of alternative's criteria in order to 
+        let the alternative achieve the target position.
         Parameters
         ----------
-        parameter : type
-            description
+        alternative_to_improve : int or str 
+            Name or position of the alternative which user wants to improve.
+        alternative_to_overcome : int or str 
+            Name or position of the alternative which should be overcome by chosen alternative.
+        epsilon : float
+            Precision of calculations. Must be in range (0.0, 1.0>.
+            (default : 0.000001)
+        solutions_number : int
+            Maximal number of proposed solutions.
+            (default : 5)
         Returns
         -------
-        TO DO
+        At most [solution_number] proposed solutions.
         """
         if alternative_to_improve[str(self.letter)] >= alternative_to_overcome[str(self.letter)]:
             raise ValueError(
@@ -1727,12 +1772,11 @@ class ATOPSIS(TOPSISAggregationFunction):
 
 class ITOPSIS(TOPSISAggregationFunction):
     """
-    Class description
+    A class used to calculate TOPSIS ranking and perform improvement actions for I() aggregation function.
     ...
     Attributes
     ----------
-    attribute : type
-        description
+    wmsd_transformer : WMSDTransformer object
     """
 
     def __init__(self, wmsd_transformer):
@@ -1740,14 +1784,18 @@ class ITOPSIS(TOPSISAggregationFunction):
         self.letter = 'I'
 
     def TOPSIS_calculation(self, w, wm, wsd):
-        """TO DO
+        """Calculates TOPSIS values according to I() aggreagtion function.
         Parameters
         ----------
-        parameter : type
-            description
+        w : TODO
+            Weights.
+        wm : TODO
+            Weighted mean.
+        wsd : TODO
+            Weighted standard deviation.
         Returns
         -------
-        TO DO
+        Calculated aggregation function value.
         """
         return 1 - np.sqrt((w - wm) * (w - wm) + wsd * wsd) / w
 
@@ -1759,16 +1807,25 @@ class ITOPSIS(TOPSISAggregationFunction):
         feature_to_change,
         **kwargs,
     ):
-        """TO DO
+        """ 
+        Exact algorithm dedicated to the aggregation `A` for achieving the target by modifying the performance on a single criterion.
+        Calculates minimal change in given criterion value in order to let the alternative achieve the target position.
         Parameters
         ----------
-        parameter : type
-            description
+        alternative_to_improve : int or str 
+            Name or position of the alternative which user wants to improve.
+        alternative_to_overcome : int or str 
+            Name or position of the alternative which should be overcome by chosen alternative.
+        epsilon : float
+            Precision of calculations. Must be in range (0.0, 1.0>.
+            (default : 0.000001)
+        feature_to_change : str
+            Name of criterion on which change should be caluculated.
         Returns
         -------
-        TO DO
+        Calculated minimal change in given criterion.
         """
-        """Exact algorithm dedicated to the aggregation `I` for achieving the target by modifying the performance on a single criterion."""
+        
         performances_US = (
             alternative_to_improve.drop(labels=["Mean", "Std", str(self.letter)])
             .to_numpy()
@@ -1842,14 +1899,23 @@ class ITOPSIS(TOPSISAggregationFunction):
         solutions_number = 5,
         **kwargs,
     ):
-        """TO DO
+        """ Calculates minimal change in standard deviation value of alternative's criteria in order to 
+        let the alternative achieve the target position.
         Parameters
         ----------
-        parameter : type
-            description
+        alternative_to_improve : int or str 
+            Name or position of the alternative which user wants to improve.
+        alternative_to_overcome : int or str 
+            Name or position of the alternative which should be overcome by chosen alternative.
+        epsilon : float
+            Precision of calculations. Must be in range (0.0, 1.0>.
+            (default : 0.000001)
+        solutions_number : int
+            Maximal number of proposed solutions.
+            (default : 5)
         Returns
         -------
-        TO DO
+        At most [solution_number] proposed solutions.
         """
         if alternative_to_improve[str(self.letter)] >= alternative_to_overcome[str(self.letter)]:
             raise ValueError(
@@ -1924,12 +1990,11 @@ class ITOPSIS(TOPSISAggregationFunction):
 
 class RTOPSIS(TOPSISAggregationFunction):
     """
-    Class description
+    A class used to calculate TOPSIS ranking and perform improvement actions for I() aggregation function.
     ...
     Attributes
     ----------
-    attribute : type
-        description
+    wmsd_transformer : WMSDTransformer object
     """
 
     def __init__(self, wmsd_transformer):
@@ -1937,14 +2002,18 @@ class RTOPSIS(TOPSISAggregationFunction):
         self.letter = 'R'
 
     def TOPSIS_calculation(self, w, wm, wsd):
-        """TO DO
+        """Calculates TOPSIS values according to R() aggreagtion function.
         Parameters
         ----------
-        parameter : type
-            description
+        w : TODO
+            Weights.
+        wm : TODO
+            Weighted mean.
+        wsd : TODO
+            Weighted standard deviation.
         Returns
         -------
-        TO DO
+        Calculated aggregation function value.
         """
         return np.sqrt(wm * wm + wsd * wsd) / (
             np.sqrt(wm * wm + wsd * wsd) + np.sqrt((w - wm) * (w - wm) + wsd * wsd)
@@ -1958,16 +2027,24 @@ class RTOPSIS(TOPSISAggregationFunction):
         feature_to_change,
         **kwargs,
     ):
-        """TO DO
+        """ 
+        Exact algorithm dedicated to the aggregation `A` for achieving the target by modifying the performance on a single criterion.
+        Calculates minimal change in given criterion value in order to let the alternative achieve the target position.
         Parameters
         ----------
-        parameter : type
-            description
+        alternative_to_improve : int or str 
+            Name or position of the alternative which user wants to improve.
+        alternative_to_overcome : int or str 
+            Name or position of the alternative which should be overcome by chosen alternative.
+        epsilon : float
+            Precision of calculations. Must be in range (0.0, 1.0>.
+            (default : 0.000001)
+        feature_to_change : str
+            Name of criterion on which change should be caluculated.
         Returns
         -------
-        TO DO
+        Calculated minimal change in given criterion.
         """
-        """Exact algorithm dedicated to the aggregation `R` for achieving the target by modifying the performance on a single criterion."""
         performances_US = (
             alternative_to_improve.drop(labels=["Mean", "Std", str(self.letter)])
             .to_numpy()
@@ -2046,14 +2123,23 @@ class RTOPSIS(TOPSISAggregationFunction):
         solutions_number = 5,
         **kwargs,
     ):
-        """TO DO
+        """ Calculates minimal change in standard deviation value of alternative's criteria in order to 
+        let the alternative achieve the target position.
         Parameters
         ----------
-        parameter : type
-            description
+        alternative_to_improve : int or str 
+            Name or position of the alternative which user wants to improve.
+        alternative_to_overcome : int or str 
+            Name or position of the alternative which should be overcome by chosen alternative.
+        epsilon : float
+            Precision of calculations. Must be in range (0.0, 1.0>.
+            (default : 0.000001)
+        solutions_number : int
+            Maximal number of proposed solutions.
+            (default : 5)
         Returns
         -------
-        TO DO
+        At most [solution_number] proposed solutions.
         """
         if alternative_to_improve[str(self.letter)] >= alternative_to_overcome[str(self.letter)]:
             raise ValueError(
