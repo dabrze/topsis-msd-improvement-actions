@@ -61,6 +61,14 @@ students_transformer.plot()
 
 ![WMSD plot](notebooks/figures/quickstart_plot.png)
 
+## Google Colab notebooks
+
+You can learn about our library using one of those notebooks in Google Colab:
+https://colab.research.google.com/drive/1umFWSW7hMTGI-3br8GUzaYYSIAADBj6p?usp=sharing
+https://colab.research.google.com/drive/1UvjUU6iUpkm0oiwi8v-Stn8lVxnAIpvX?usp=sharing
+https://colab.research.google.com/drive/1UiyJOv11c0YlMctPCSQ7-wZfGVvCixPH?usp=sharing
+https://colab.research.google.com/drive/1qzZ2g18oR9l2abD16SDbZRx1LoCl33sh?usp=sharing
+
 ## Citation
 
 If you use this project in your research, please consider citing the following papers:
