@@ -620,6 +620,48 @@ class WMSDTransformer(TransformerMixin):
         fig.add_trace(new_point)
         return fig
 
+    def return_ranking(self, normalized=True):
+        """Returns the TOPSIS ranking
+        Parameters
+        ----------
+        normalized : boolean, optional
+            If True, then all criteria values will be shown in their normalized form.
+            If False, then all criteria values will be shown as they were passed by the user.
+            (default True)
+
+        Returns
+        -------
+        Pandas data-frame.
+        """
+
+        if not isinstance(normalized, bool):
+            raise ValueError(
+                "Invalid value at 'normalized': must be a bool."
+            )
+        
+        if normalized:
+            ranking = self.X_new
+        else:
+            ranking = self.X
+            ranking["Mean"] = self.X_new["Mean"]
+            ranking["Std"] = self.X_new["Std"]
+            ranking[str(self.agg_fn.letter)] = self.X_new[str(self.agg_fn.letter)]
+
+        ranking = ranking.assign(Rank=None)
+        columns = ranking.columns.tolist()
+        columns = columns[-1:] + columns[:-1]
+        ranking = ranking[columns]
+
+        alternative_names = ranking.index.tolist()
+        for alternative in alternative_names:
+            ranking.loc[alternative, "Rank"] = (
+                self._ranked_alternatives.index(alternative) + 1
+            )
+
+        ranking = ranking.sort_values(by=["Rank"])
+
+        return ranking
+
     def show_ranking(self, mode="standard", first=1, last=None):
         """Displays the TOPSIS ranking
         Parameters
