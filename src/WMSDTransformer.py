@@ -14,6 +14,7 @@ from joblib import Parallel, delayed
 from utils.population_reduction import reduce_population_agglomerative_clustering
 from utils.single_criterion_exact_improvement import solve_quadratic_equation, choose_appropriate_solution
 
+
 class WMSDTransformer(TransformerMixin):
     """
     A class used to calculate TOPSIS ranking,
@@ -53,7 +54,7 @@ class WMSDTransformer(TransformerMixin):
 
         X : data-frame
             Pandas data-frame provided by the user.
-            Apart of column and row names all values must be numerical.
+            Apart from column and row names all values must be numerical.
         weights : np.array of float, optional
             Numpy array of criteria' weights.
             Its length must be equal to self.m (number of criteria).
@@ -189,9 +190,7 @@ class WMSDTransformer(TransformerMixin):
         w_stds = np.linalg.norm(v - vw, axis=1) / s
         return w_means, w_stds
 
-    def inverse_transform(
-        self, target_mean, target_std, std_type, sampling_density=None, epsilon=0.01, verbose=True
-    ):
+    def inverse_transform(self, target_mean, target_std, std_type, sampling_density=None, epsilon=0.01, verbose=True):
         """Calculates possible changes to obtain target mean and standard deviation values for given alternative.
         Parameters
         ----------
@@ -279,7 +278,7 @@ class WMSDTransformer(TransformerMixin):
             (default: 'jet')
         Returns
         -------
-        Plot as an plotly figure.
+        Plot as a plotly figure.
         """
 
         # for all possible mean and std count aggregation value and color it by it
@@ -493,7 +492,7 @@ class WMSDTransformer(TransformerMixin):
         ----------
         id : string
             String value containing the name of the alternative to improve.
-        change : pandas Data-frame
+        changes : pandas Data-frame
             Data-frame with the improvement action changes
         show_names : bool, optional
             Boolean value, if true, then points labels are showed on a plot.
@@ -714,29 +713,32 @@ class WMSDTransformer(TransformerMixin):
         display(ranking.drop(["Mean", "Std", str(self.agg_fn.letter)], axis=1))
         return
 
-    def improvement(
-        self,
-        function_name,
-        alternative_to_improve,
-        alternative_to_overcome,
-        epsilon=0.000001,
-        **kwargs,
-    ):
+    def __get_alternative_ID(self, alternative_id_or_rank):
+        if type(alternative_id_or_rank) == int:
+            # return alternative ID according to the position in the ranking specified by user
+            return self._ranked_alternatives[alternative_id_or_rank-1]
+        elif type(alternative_id_or_rank) == str:
+            # return alternative ID specified by user
+            return alternative_id_or_rank
+        else:
+            raise TypeError(f"Invalid value at 'alternative_to_improve': must be int or str, not {type(alternative_id_or_rank)}")
+
+    def improvement(self, function_name, alternative_to_improve, alternative_to_overcome, epsilon=1e-06, **kwargs):
         """ Runs chosen by the user improvement function.
         Parameters
         ----------
-        function_name : str 
+        function_name : str
             Name of the function (improvement action) to perform on given alternative.
-            It must be one of the following strings: 
+            It must be one of the following strings:
             'improvement_single_feature',
             'improvement_mean',
             'improvement_features',
             'improvement_genetic',
             'improvement_std'
 
-        alternative_to_improve : int or str 
+        alternative_to_improve : int or str
             Name or position of the alternative which user wants to improve.
-        alternative_to_overcome : int or str 
+        alternative_to_overcome : int or str
             Name or position of the alternative which should be overcome by chosen alternative.
         epsilon : float
             Precision of calculations. Must be in range (0.0, 1.0>.
@@ -745,24 +747,12 @@ class WMSDTransformer(TransformerMixin):
         -------
         Output returned by the [function_name] function.
         """
-        if type(alternative_to_improve) == int:
-            alternative_to_improve = self.X_new.loc[
-                self._ranked_alternatives[alternative_to_improve-1]
-            ].copy()
-        elif type(alternative_to_improve) == str:
-            alternative_to_improve = self.X_new.loc[alternative_to_improve].copy()
 
-        if type(alternative_to_overcome) == int:
-            alternative_to_overcome = self.X_new.loc[
-                self._ranked_alternatives[alternative_to_overcome-1]
-            ].copy()
-        elif type(alternative_to_overcome) == str:
-            alternative_to_overcome = self.X_new.loc[alternative_to_overcome].copy()
+        alternative_to_improve = self.X_new.loc[self.__get_alternative_ID(alternative_to_improve)].copy()
+        alternative_to_overcome = self.X_new.loc[self.__get_alternative_ID(alternative_to_overcome)].copy()
 
         func = getattr(self.agg_fn, function_name)
-        return func(
-            alternative_to_improve, alternative_to_overcome, epsilon, **kwargs
-        )
+        return func(alternative_to_improve, alternative_to_overcome, epsilon, **kwargs)
 
     def __check_max_std_calculator(self, max_std_calculator):
         if isinstance(max_std_calculator, str):
@@ -1028,7 +1018,7 @@ class TOPSISAggregationFunction(ABC):
 
     @abstractmethod
     def TOPSIS_calculation(self, w, wm, wsd):
-        """Calculates TOPSIS values according to chosen aggreagtion function.
+        """Calculates TOPSIS values according to chosen aggregation function.
         Parameters
         ----------
         w : TODO
@@ -1056,15 +1046,15 @@ class TOPSISAggregationFunction(ABC):
         let the alternative achieve the target position.
         Parameters
         ----------
-        alternative_to_improve : int or str 
+        alternative_to_improve : int or str
             Name or position of the alternative which user wants to improve.
-        alternative_to_overcome : int or str 
+        alternative_to_overcome : int or str
             Name or position of the alternative which should be overcome by chosen alternative.
         epsilon : float
             Precision of calculations. Must be in range (0.0, 1.0>.
             (default : 0.000001)
         feature_to_change : str
-            Name of criterion on which change should be caluculated.
+            Name of criterion on which change should be calculated.
         Returns
         -------
         Calculated minimal change in given criterion.
@@ -1077,16 +1067,16 @@ class TOPSISAggregationFunction(ABC):
         alternative_to_overcome,
         epsilon,
         allow_std=False,
-        solutions_number = 5,
+        solutions_number=5,
         **kwargs,
     ):
         """ Calculates minimal change in mean value of alternative's criteria in order to 
         let the alternative achieve the target position.
         Parameters
         ----------
-        alternative_to_improve : int or str 
+        alternative_to_improve : int or str
             Name or position of the alternative which user wants to improve.
-        alternative_to_overcome : int or str 
+        alternative_to_overcome : int or str
             Name or position of the alternative which should be overcome by chosen alternative.
         epsilon : float
             Precision of calculations. Must be in range (0.0, 1.0>.
@@ -1103,7 +1093,7 @@ class TOPSISAggregationFunction(ABC):
         """
         if alternative_to_improve[str(self.letter)] >= alternative_to_overcome[str(self.letter)]:
             raise ValueError(
-                "Invalid value at 'alternatie_to_improve': must be worse than alternative_to_overcome'"
+                "Invalid value at 'alternative_to_improve': must be worse than alternative_to_overcome'"
             )
 
         w = np.mean(self.wmsd_transformer.weights)
@@ -1240,61 +1230,41 @@ class TOPSISAggregationFunction(ABC):
             result['Std'] = result_stds - std_start
             return result
 
-    def __check_boundary_values(
-        self, alternative_to_improve, features_to_change, boundary_values
-    ):
-
+    def __check_boundary_values(self, alternative_to_improve, features_to_change, boundary_values):
         if boundary_values is None:
             boundary_values = np.ones(len(features_to_change))
-
         elif not isinstance(boundary_values, list):
-            raise ValueError(
-                "Invalid value at 'boundary_values': must be a list"
-            )
-
+            raise TypeError("Invalid value at 'boundary_values': must be a list")
         else:
-
             if len(features_to_change) != len(boundary_values):
-                raise ValueError(
-                    "Invalid value at 'boundary_values': must be same length as 'features_to_change'"
-                )
-            for i in range(len(features_to_change)):
-                col = self.wmsd_transformer.X_new.columns.get_loc(features_to_change[i])
-                if (
-                    boundary_values[i] < self.wmsd_transformer.expert_range[col][0]
-                    or boundary_values[i] > self.wmsd_transformer.expert_range[col][1]
-                ):
-                    raise ValueError(
-                        "Invalid value at 'boundary_values': must be between defined 'expert_range'"
-                    )
+                raise ValueError("Invalid value at 'boundary_values': must be same length as 'features_to_change'")
+
+            lower_bounds = self.wmsd_transformer._lower_bounds
+            upper_bounds = self.wmsd_transformer._upper_bounds
+            value_range = self.wmsd_transformer._value_range
+
+            for i, feature_name in enumerate(features_to_change):
+                col = self.wmsd_transformer.X_new.columns.get_loc(feature_name)
+                if boundary_values[i] < lower_bounds[col] or boundary_values[i] > upper_bounds[col]:
+                    raise ValueError("Invalid value at 'boundary_values': must be between defined 'expert_range'")
                 else:
-                    boundary_values[i] = (
-                        boundary_values[i] - self.wmsd_transformer.expert_range[col][0]
-                    ) / (
-                        self.wmsd_transformer.expert_range[col][1]
-                        - self.wmsd_transformer.expert_range[col][0]
-                    )
+                    boundary_values[i] = (boundary_values[i] - lower_bounds[col]) / value_range[col]
                     if self.wmsd_transformer.objectives[col] == "min":
                         boundary_values[i] = 1 - boundary_values[i]
-                    if (
-                        alternative_to_improve[features_to_change[i]]
-                        > boundary_values[i]
-                    ):
+                    if alternative_to_improve[feature_name] > boundary_values[i]:
                         raise ValueError(
-                            "Invalid value at 'boundary_values': must be better or equal to improving alternative values"
+                            "Invalid value at 'boundary_values': must be better than or equal to the performances of the alternative being improved"
                         )
 
         return np.array(boundary_values)
 
     def __check_epsilon(self, epsilon, w):
-
-        avg_w = sum(w)/len(w)
-
         if not (isinstance(epsilon, float) or isinstance(epsilon, int)):
             raise ValueError("Invalid value at 'epsilon': must be a float")
 
-        if (epsilon < 0.0) or (epsilon > avg_w/2):
-            raise ValueError(f"Invalid value at 'epsilon': must be in range [0, {avg_w/2}]")
+        mean_weight = np.mean(w)
+        if (epsilon < 0.0) or (epsilon > mean_weight/2):
+            raise ValueError(f"Invalid value at 'epsilon': must be in range [0, {mean_weight/2}]")
 
     def improvement_features(
         self,
@@ -1309,91 +1279,76 @@ class TOPSISAggregationFunction(ABC):
         let the alternative achieve the target position.
         Parameters
         ----------
-        alternative_to_improve : int or str 
+        alternative_to_improve : int or str
             Name or position of the alternative which user wants to improve.
-        alternative_to_overcome : int or str 
+        alternative_to_overcome : int or str
             Name or position of the alternative which should be overcome by chosen alternative.
         epsilon : float
             Precision of calculations. Must be in range (0.0, 1.0>.
             (default : 0.000001)
         features_to_change : array of str
-            Array containing names of criteria on which change should be caluculated.
+            Array containing names of criteria on which change should be calculated.
         boundary_values : 2D array of floats
             Array with dimensions number_of_features_to_change x 2. For each feature to change it should
-            have provoided 2 numbers: lower and upper boundaries of proposed values.
+            have provided 2 numbers: lower and upper boundaries of proposed values.
             (default : None)
         Returns
         -------
         Proposed solutions.
         """
         if alternative_to_improve[str(self.letter)] >= alternative_to_overcome[str(self.letter)]:
-            raise ValueError(
-                "Invalid value at 'alternatie_to_improve': must be worse than alternative_to_overcome'"
-            )
+            raise ValueError("Invalid value at 'alternative_to_improve': must be worse than alternative_to_overcome'")
 
-        boundary_values = self.__check_boundary_values(
-            alternative_to_improve, features_to_change, boundary_values
-        )
+        self.__check_epsilon(epsilon, self.wmsd_transformer.weights)
+        boundary_values = self.__check_boundary_values(alternative_to_improve, features_to_change, boundary_values)
 
-        AggFn = alternative_to_improve[str(self.letter)]
-        alternative_to_improve = alternative_to_improve.drop(
-            labels=["Mean", "Std", str(self.letter)]
-        )
-        improvement_start = alternative_to_improve.copy()
-        feature_pointer = 0
-        w = self.wmsd_transformer.weights
-        self.__check_epsilon(epsilon, w)
-
-        value_range = self.wmsd_transformer._value_range
-        objectives = self.wmsd_transformer.objectives
+        initial_performances = alternative_to_improve.drop(labels=["Mean", "Std", str(self.letter)])
+        current_performances = initial_performances.copy()
+        mean_weight = np.mean(self.wmsd_transformer.weights)
 
         is_improvement_satisfactory = False
-
-        s = np.sqrt(sum(w * w)) / np.mean(w)
         for i, k in zip(features_to_change, boundary_values):
-            alternative_to_improve[i] = k
-            mean, std = self.wmsd_transformer.transform_US_to_wmsd(
-                [alternative_to_improve]
-            )
-            AggFn = self.TOPSIS_calculation(np.mean(w), mean, std)
+            # Applying the maximum allowable improvement of the alternative's evaluation on the i-th criterion
+            current_performances[i] = k
+            mean, std = self.wmsd_transformer.transform_US_to_wmsd([current_performances])
+            agg_value = self.TOPSIS_calculation(mean_weight, mean, std)
 
-            if AggFn < alternative_to_overcome[str(self.letter)]:
+            # If the maximum allowable improvement on this criterion is not sufficient to achieve the target,
+            # then it is necessary to improve on the next criterion.
+            if agg_value < alternative_to_overcome[str(self.letter)]:
                 continue
 
-            alternative_to_improve[i] = 0.5 * k
+            # If the maximum allowable improvement of this criterion is sufficient to achieve the goal,
+            # perform the binary search algorithm to achieve the target by means of the minimal improvement.
+            current_performances[i] = 0.5 * k
             mean, std = self.wmsd_transformer.transform_US_to_wmsd(
-                [alternative_to_improve]
+                [current_performances]
             )
-            AggFn = self.TOPSIS_calculation(np.mean(w), mean, std)
+            agg_value = self.TOPSIS_calculation(mean_weight, mean, std)
             change_ratio = 0.25 * k
             while True:
-                if AggFn < alternative_to_overcome[str(self.letter)]:
-                    alternative_to_improve[i] += change_ratio
-                elif AggFn - alternative_to_overcome[str(self.letter)] > epsilon:
-                    alternative_to_improve[i] -= change_ratio
+                if agg_value < alternative_to_overcome[str(self.letter)]:
+                    current_performances[i] += change_ratio
+                elif agg_value - alternative_to_overcome[str(self.letter)] > epsilon:
+                    current_performances[i] -= change_ratio
                 else:
                     is_improvement_satisfactory = True
                     break
                 change_ratio = change_ratio / 2
-                mean, std = self.wmsd_transformer.transform_US_to_wmsd(
-                    [alternative_to_improve]
-                )
-                AggFn = self.TOPSIS_calculation(np.mean(w), mean, std)
+                mean, std = self.wmsd_transformer.transform_US_to_wmsd([current_performances])
+                agg_value = self.TOPSIS_calculation(mean_weight, mean, std)
 
             if is_improvement_satisfactory:
-                alternative_to_improve -= improvement_start
-                for j in range(len(alternative_to_improve)):
-                    if alternative_to_improve[j] == 0:
+                value_range = self.wmsd_transformer._value_range
+                performance_modifications = current_performances - initial_performances
+                for j in range(len(performance_modifications)):
+                    if performance_modifications[j] == 0:
                         continue
-                    elif objectives[j] == "max":
-                        alternative_to_improve[j] = (
-                            value_range[j] * alternative_to_improve[j]
-                        )
+                    elif self.wmsd_transformer.objectives[j] == "max":
+                        performance_modifications[j] = value_range[j] * performance_modifications[j]
                     else:
-                        alternative_to_improve[j] = (
-                            -value_range[j] * alternative_to_improve[j]
-                        )
-                result_df = alternative_to_improve.to_frame().transpose()
+                        performance_modifications[j] = -value_range[j] * performance_modifications[j]
+                result_df = performance_modifications.to_frame().transpose()
                 result_df = result_df.reset_index(drop=True)
                 return result_df
         else:
@@ -1414,18 +1369,18 @@ class TOPSISAggregationFunction(ABC):
         let the chosen alternative achieve the target position.
         Parameters
         ----------
-        alternative_to_improve : int or str 
+        alternative_to_improve : int or str
             Name or position of the alternative which user wants to improve.
-        alternative_to_overcome : int or str 
+        alternative_to_overcome : int or str
             Name or position of the alternative which should be overcome by chosen alternative.
         epsilon : float
             Precision of calculations. Must be in range (0.0, 1.0>.
             (default : 0.000001)
         features_to_change : array of str
-            Array containing names of criteria on which change should be caluculated.
+            Array containing names of criteria on which change should be calculated.
         boundary_values : 2D array of floats
             Array with dimensions number_of_features_to_change x 2. For each feature to change it should
-            have provoided 2 numbers: lower and upper boundaries of proposed values.
+            have provided 2 numbers: lower and upper boundaries of proposed values.
             (default : None)
         allow_deterioration : bool
             TODO description
@@ -1524,12 +1479,12 @@ class PostFactumTopsisPymoo(Problem):
     modified_criteria_subset : numpy array of bools
         Used to slice numpy arrays.
     current_performances : object
-        description
+        TODO description
     target_agg_value : object
-        description
+        TODO description
     upper_bounds : 2D array of floats
         Array with dimensions number_of_features_to_change x 2. For each feature to change it should
-        have provoided 2 numbers: lower and upper boundaries of proposed values.
+        have provided 2 numbers: lower and upper boundaries of proposed values.
         (default : None)
     """
 
@@ -1548,7 +1503,7 @@ class PostFactumTopsisPymoo(Problem):
         )
 
         self.topsis_model = topsis_model
-        self.mean_of_weights = np.mean(self.topsis_model.weights)
+        self.mean_weight = np.mean(self.topsis_model.weights)
         self.modified_criteria_subset = np.array(modified_criteria_subset).astype(bool)
         self.current_performances = current_performances.copy()
         self.target_agg_value = target_agg_value
@@ -1574,7 +1529,7 @@ class PostFactumTopsisPymoo(Problem):
         ] = x.copy()  # this copy might be redundant
         w_means, w_stds = self.topsis_model.transform_US_to_wmsd(modified_performances)
         agg_values = self.topsis_model.agg_fn.TOPSIS_calculation(
-            self.mean_of_weights, w_means, w_stds
+            self.mean_weight, w_means, w_stds
         )
         g1 = (
             self.target_agg_value - agg_values
@@ -1623,9 +1578,9 @@ class ATOPSIS(TOPSISAggregationFunction):
         Calculates minimal change in given criterion value in order to let the alternative achieve the target position.
         Parameters
         ----------
-        alternative_to_improve : int or str 
+        alternative_to_improve : int or str
             Name or position of the alternative which user wants to improve.
-        alternative_to_overcome : int or str 
+        alternative_to_overcome : int or str
             Name or position of the alternative which should be overcome by chosen alternative.
         epsilon : float
             Precision of calculations. Must be in range (0.0, 1.0>.
@@ -1854,7 +1809,7 @@ class ITOPSIS(TOPSISAggregationFunction):
         -------
         Calculated minimal change in given criterion.
         """
-        
+
         performances_US = (
             alternative_to_improve.drop(labels=["Mean", "Std", str(self.letter)])
             .to_numpy()
@@ -1925,7 +1880,7 @@ class ITOPSIS(TOPSISAggregationFunction):
         alternative_to_improve,
         alternative_to_overcome,
         epsilon,
-        solutions_number = 5,
+        solutions_number=5,
         **kwargs,
     ):
         """ Calculates minimal change in standard deviation value of alternative's criteria in order to 
@@ -1948,7 +1903,7 @@ class ITOPSIS(TOPSISAggregationFunction):
         """
         if alternative_to_improve[str(self.letter)] >= alternative_to_overcome[str(self.letter)]:
             raise ValueError(
-                "Invalid value at 'alternatie_to_improve': must be worse than alternative_to_overcome'"
+                "Invalid value at 'alternative_to_improve': must be worse than alternative_to_overcome'"
             )
 
         w = np.mean(self.wmsd_transformer.weights)
@@ -2056,14 +2011,14 @@ class RTOPSIS(TOPSISAggregationFunction):
         feature_to_change,
         **kwargs,
     ):
-        """ 
+        """
         Exact algorithm dedicated to the aggregation `A` for achieving the target by modifying the performance on a single criterion.
         Calculates minimal change in given criterion value in order to let the alternative achieve the target position.
         Parameters
         ----------
-        alternative_to_improve : int or str 
+        alternative_to_improve : int or str
             Name or position of the alternative which user wants to improve.
-        alternative_to_overcome : int or str 
+        alternative_to_overcome : int or str
             Name or position of the alternative which should be overcome by chosen alternative.
         epsilon : float
             Precision of calculations. Must be in range (0.0, 1.0>.
@@ -2136,7 +2091,7 @@ class RTOPSIS(TOPSISAggregationFunction):
         else:
             feature_modification = solution - performances_CS[j]
             if self.wmsd_transformer.objectives[modified_criterion_idx] == 'min':
-                    feature_modification *= -1
+                feature_modification *= -1
             modification_vector = np.zeros_like(performances_US)
             modification_vector[modified_criterion_idx] = feature_modification
             result_df = pd.DataFrame(
@@ -2149,7 +2104,7 @@ class RTOPSIS(TOPSISAggregationFunction):
         alternative_to_improve,
         alternative_to_overcome,
         epsilon,
-        solutions_number = 5,
+        solutions_number=5,
         **kwargs,
     ):
         """ Calculates minimal change in standard deviation value of alternative's criteria in order to 
