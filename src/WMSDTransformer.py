@@ -144,7 +144,7 @@ class WMSDTransformer(TransformerMixin):
 
         X : data-frame
             Pandas data-frame provided by the user.
-            Apart of column and row names all values must be numerical.
+            Apart from column and row names all values must be numerical.
         weights : np.array of float, optional
             Numpy array of criteria' weights.
             Its length must be equal to self.n.
@@ -190,30 +190,54 @@ class WMSDTransformer(TransformerMixin):
         w_stds = np.linalg.norm(v - vw, axis=1) / s
         return w_means, w_stds
 
-    def inverse_transform(self, target_mean, target_std, std_type, sampling_density=None, epsilon=0.01, verbose=True):
-        """Calculates possible changes to obtain target mean and standard deviation values for given alternative.
+    def inverse_transform_numpy(self, target_mean, target_std, std_type='==', sampling_density=None, epsilon=0.01, verbose=False):
+        """
+        Find possible performance vectors (i.e., vectors of artificial alternatives' evaluations) in US space
+        for which the weighted mean (WM) and weight-scaled standard deviation (WSD) are close to the expected values.
+        The number of feasible solutions grows exponentially with the dimensionality (number of criteria) of
+        the dataset. Computing the exact values of all solutions is computationally expensive, particularly
+        for high-dimensional datasets. Therefore, this method samples the US space to identify a set of points
+        that are sufficiently close (within distance of `epsilon` or less) to the expected values of `target_mean`
+        and `target_std`.
+
         Parameters
         ----------
-        target_mean : float 
-            Mean of values to obtain for a given alternative.
-        target_std : float 
-            Standard deviation of values to obtain for a given alternative.
-        std_type : str 
-            TODO description (probably someting depending on chosen agg_fn)
+        target_mean : float
+            The expected value of the weighted mean score for the returned solutions (performance vectors).
+
+        target_std : float
+            The expected value of the weight-scaled standard deviation for the returned solutions (performance vectors).
+
+        std_type : str, default='=='
+            The nature WSD criterion varies depending on the aggregation function used and the WM. It might be
+            considered as a gain-type or a cost-type criterion. By default, the method assumes that the WSD should
+            be as close as possible to `target_std' ('=='). The value '<=' means that the WSD is a cost-type criterion,
+            and therefore solutions that do not exceed `target_std` will be returned (larger deviations in the other
+            direction, i.e. towards smallerWSD values, are acceptable). The symbol '>=' indicates that WSD is a gain-type
+            criterion. Therefore, the returned solutions will exceed `target_std` (larger deviations in the other direction,
+            i.e. towards larger WSD values, are acceptable).
             Must be one of following strings '==', '<=', '>='.
-        sampling_density : int
-            TODO description
-            If None, then its value is set automatically and equals TODO.
-            (default: None)
-        epsilon : float
-            Precision of calculations. Must be in range (0.0, 1.0>.
-            (default : 0.01)
-        verbose : bool
-            If True, prints info about number of returned solutions.
-            (default : True)
+
+        sampling_density : int or None, default=None
+            The `sampling_density` parameter determines how densely the Utility Space is sampled.
+            By default, i.e., when the `sampling_density=None`, the value of `sampling_density`
+            is calculated based on the dimensionality of the dataset.
+
+        epsilon : float, default=0.01
+            Maximum deviation of WM and WSD (when `std_type='==') or WM (otherwise) from target values.
+            Must be in range (0.0, 1.0].
+
+        verbose : bool, default=False
+            When the value of this parameter is set to True, the method provides information about the total
+            number of sampled solutions, RAM consumption, and the number of returned solutions.
+
         Returns
         -------
-        Pandas dataframe containing found solutions.
+        solutions: DataFrame or None
+            The method returns a DataFrame containing performance vectors that meet the requirements specified by
+            `target_mean`, `target_std`, `std_type` and `epsilon`, or None if no points satisfying these requirements
+            are found. In the latter scenario, it may be helpful to increase the value of `epsilon` at the expense of
+            lower accuracy.
         """
 
         if std_type not in ['==', '<=', '>=']:
@@ -221,43 +245,36 @@ class WMSDTransformer(TransformerMixin):
 
         if sampling_density is None:
             sampling_density = math.ceil(5000000 ** (1 / self.m))
-            # print("sampling_density", sampling_density)
+
+        # TODO Possible enhancement: The method can automatically select the epsilon parameter.
+        #  If many points meet the requirements, the method can be rerun with a smaller tolerance.
+        #  If no solution is found, the method can be rerun with a larger tolerance.
 
         dims = [np.linspace(0, 1, sampling_density, dtype=np.float32) for i in range(self.m)]
         grid = np.meshgrid(*dims)
         points = np.column_stack([xx.ravel() for xx in grid])
         if verbose:
-            print(f"inverse_transform sampling_density: {sampling_density}")
-            print(f"inverse_transform {len(points)} samples generated in total")
-            print(f"inverse_transform RAM usage for points: {points.nbytes / 1024 / 1024} MiB")
+            print(f"inverse_transform_numpy: sampling_density: {sampling_density}")
+            print(f"inverse_transform_numpy: {len(points)} samples generated in total")
+            print(f"inverse_transform_numpy: RAM usage for points: {points.nbytes / 1024 / 1024} MiB")
         w_means, w_stds = self.transform_US_to_wmsd(points)
 
-        # TODO automatyczny dobór epsilona w inverse_transform, jeśli bardzo wiele punktów pasuje,
-        # to należy ustawić mniejsza tolerancję, jeśli żaden to większą tolerancję
-
         if std_type == "==":
-            filtered_points = points[
-                np.bitwise_and(
-                    abs(w_means - target_mean) < epsilon,
-                    abs(target_std - w_stds) < epsilon,
-                )
-            ]
+            filtered_points = points[np.bitwise_and(abs(w_means - target_mean) < epsilon, abs(target_std - w_stds) < epsilon)]
         elif std_type == "<=":
-            filtered_points = points[
-                np.bitwise_and(
-                    abs(w_means - target_mean) < epsilon, w_stds <= target_std
-                )
-            ]
-        else: # std_type == ">="
-            filtered_points = points[
-                np.bitwise_and(
-                    abs(w_means - target_mean) < epsilon, w_stds >= target_std
-                )
-            ]
-        if verbose:
-            print(f"inverse_transform Returning {filtered_points.shape[0]} solutions")
+            filtered_points = points[np.bitwise_and(abs(w_means - target_mean) < epsilon, w_stds <= target_std)]
+        else:  # std_type == ">="
+            filtered_points = points[np.bitwise_and(abs(w_means - target_mean) < epsilon, w_stds >= target_std)]
 
-        return pd.DataFrame(filtered_points, columns=self.X.columns)
+        if verbose:
+            print(f"inverse_transform_numpy: Returning {filtered_points.shape[0]} solutions")
+
+        if filtered_points.shape[0] == 0:
+            solutions = None
+        else:
+            solutions = pd.DataFrame(filtered_points, columns=self.X.columns)
+
+        return solutions
 
     def plot(self, heatmap_quality=500, show_names=False, plot_name=None, color='jet'):
 
@@ -1140,7 +1157,7 @@ class TOPSISAggregationFunction(ABC):
                         [alternative_to_improve["Mean"] - m_start], columns=["Mean"]
                     )
                 else:
-                    inverse_solutions = self.wmsd_transformer.inverse_transform(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
+                    inverse_solutions = self.wmsd_transformer.inverse_transform_numpy(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
                     reduced_solutions = reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
                     result = reduced_solutions
             elif allow_std:
@@ -1162,7 +1179,7 @@ class TOPSISAggregationFunction(ABC):
                             columns=["Mean", "Std"],
                         )
                     else:
-                        inverse_solutions = self.wmsd_transformer.inverse_transform(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
+                        inverse_solutions = self.wmsd_transformer.inverse_transform_numpy(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
                         reduced_solutions = reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
                         result = reduced_solutions
                 else:
@@ -1203,7 +1220,7 @@ class TOPSISAggregationFunction(ABC):
                                 [alternative_to_improve["Mean"] - m_start], columns=["Mean"]
                             )
                         else:
-                            inverse_solutions = self.wmsd_transformer.inverse_transform(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
+                            inverse_solutions = self.wmsd_transformer.inverse_transform_numpy(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
                             reduced_solutions = reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
                             result = reduced_solutions
                             break
@@ -1730,7 +1747,7 @@ class ATOPSIS(TOPSISAggregationFunction):
                     [alternative_to_improve["Std"] - std_start], columns=["Std"]
                 )
             else:
-                inverse_solutions = self.wmsd_transformer.inverse_transform(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
+                inverse_solutions = self.wmsd_transformer.inverse_transform_numpy(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
                 reduced_solutions = reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
                 result = reduced_solutions
             result_means, result_stds = self.wmsd_transformer.transform_US_to_wmsd(np.array(result))
@@ -1948,7 +1965,7 @@ class ITOPSIS(TOPSISAggregationFunction):
                     [alternative_to_improve["Std"] - std_start], columns=["Std"]
                 )
             else:
-                inverse_solutions = self.wmsd_transformer.inverse_transform(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
+                inverse_solutions = self.wmsd_transformer.inverse_transform_numpy(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
                 reduced_solutions = reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
                 result = reduced_solutions
             result_means, result_stds = self.wmsd_transformer.transform_US_to_wmsd(np.array(result))
@@ -2177,7 +2194,7 @@ class RTOPSIS(TOPSISAggregationFunction):
                         index=["Std"],
                     )
                 else:
-                    inverse_solutions = self.wmsd_transformer.inverse_transform(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
+                    inverse_solutions = self.wmsd_transformer.inverse_transform_numpy(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
                     reduced_solutions = reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
                     result = reduced_solutions
         else:
@@ -2219,7 +2236,7 @@ class RTOPSIS(TOPSISAggregationFunction):
                         [alternative_to_improve["Std"] - std_start], columns=["Std"]
                     )
                 else:
-                    inverse_solutions = self.wmsd_transformer.inverse_transform(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
+                    inverse_solutions = self.wmsd_transformer.inverse_transform_numpy(alternative_to_improve["Mean"], alternative_to_improve["Std"], "==")
                     reduced_solutions = reduce_population_agglomerative_clustering(inverse_solutions, solutions_number)
                     result = reduced_solutions
         result_means, result_stds = self.wmsd_transformer.transform_US_to_wmsd(np.array(result))
