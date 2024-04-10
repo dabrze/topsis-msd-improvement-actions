@@ -1,5 +1,6 @@
 import math
 from abc import ABC, abstractmethod
+import numba
 import numpy as np
 import pandas as pd
 from sklearn.base import TransformerMixin
@@ -199,6 +200,8 @@ class WMSDTransformer(TransformerMixin):
         for high-dimensional datasets. Therefore, this method samples the US space to identify a set of points
         that are sufficiently close (within distance of `epsilon` or less) to the expected values of `target_mean`
         and `target_std`.
+        This method utilizes NumPy vectorization to enhance performance. However, it requires storing all samples in RAM,
+        which may not be possible for a large number of dimensions and a high value of the `sampling_density` parameter.
 
         Parameters
         ----------
@@ -270,6 +273,67 @@ class WMSDTransformer(TransformerMixin):
             print(f"inverse_transform_numpy: Returning {filtered_points.shape[0]} solutions")
 
         if filtered_points.shape[0] == 0:
+            solutions = None
+        else:
+            solutions = pd.DataFrame(filtered_points, columns=self.X.columns)
+
+        return solutions
+
+    def inverse_transform_numba(self, target_mean, target_std, std_type='==', sampling_density=None, epsilon=0.01, verbose=False):
+        """
+        Find possible performance vectors (i.e., vectors of artificial alternatives' evaluations) in US space
+        for which the weighted mean (WM) and weight-scaled standard deviation (WSD) are close to the expected values.
+        The number of feasible solutions grows exponentially with the dimensionality (number of criteria) of
+        the dataset. Computing the exact values of all solutions is computationally expensive, particularly
+        for high-dimensional datasets. Therefore, this method samples the US space to identify a set of points
+        that are sufficiently close (within distance of `epsilon` or less) to the expected values of `target_mean`
+        and `target_std`.
+        This method utilizes a just-in-time compiler Numba to enhance performance without requiring to store all samples in RAM.
+
+        Parameters
+        ----------
+        target_mean : float
+            The expected value of the weighted mean score for the returned solutions (performance vectors).
+
+        target_std : float
+            The expected value of the weight-scaled standard deviation for the returned solutions (performance vectors).
+
+        std_type : str, default='=='
+            The nature WSD criterion varies depending on the aggregation function used and the WM. It might be
+            considered as a gain-type or a cost-type criterion. By default, the method assumes that the WSD should
+            be as close as possible to `target_std' ('=='). The value '<=' means that the WSD is a cost-type criterion,
+            and therefore solutions that do not exceed `target_std` will be returned (larger deviations in the other
+            direction, i.e. towards smallerWSD values, are acceptable). The symbol '>=' indicates that WSD is a gain-type
+            criterion. Therefore, the returned solutions will exceed `target_std` (larger deviations in the other direction,
+            i.e. towards larger WSD values, are acceptable).
+            Must be one of following strings '==', '<=', '>='.
+
+        sampling_density : int or None, default=None
+            The `sampling_density` parameter determines how densely the Utility Space is sampled.
+            By default, i.e., when the `sampling_density=None`, the value of `sampling_density`
+            is calculated based on the dimensionality of the dataset.
+
+        epsilon : float, default=0.01
+            Maximum deviation of WM and WSD (when `std_type='==') or WM (otherwise) from target values.
+            Must be in range (0.0, 1.0].
+
+        verbose : bool, default=False
+            When the value of this parameter is set to True, the method provides information about the total
+            number of sampled solutions, RAM consumption, and the number of returned solutions.
+
+        Returns
+        -------
+        solutions: DataFrame or None
+            The method returns a DataFrame containing performance vectors that meet the requirements specified by
+            `target_mean`, `target_std`, `std_type` and `epsilon`, or None if no points satisfying these requirements
+            are found. In the latter scenario, it may be helpful to increase the value of `epsilon` at the expense of
+            lower accuracy.
+        """
+
+        from utils.numba_inverse_transform import inverse_transform
+        filtered_points = inverse_transform(target_mean, target_std, self.weights, std_type, sampling_density, epsilon, verbose)
+
+        if len(filtered_points) == 0:
             solutions = None
         else:
             solutions = pd.DataFrame(filtered_points, columns=self.X.columns)
